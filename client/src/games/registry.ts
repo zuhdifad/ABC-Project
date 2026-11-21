@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { pulseSprite } from "../flow/characters";
 
 /**
  * GAME REGISTRY (client side)
@@ -61,7 +62,7 @@ const CoffeeTheme: GameTheme = {
   },
 
   updateLane(lane, player, time) {
-    if (player.finished) lane.avatar.setScale(1 + Math.sin(time / 120) * 0.06);
+    if (player.finished) pulseSprite(lane.avatar, 1 + Math.sin(time / 120) * 0.06);
     const g = lane.extra!;
     const x = 210, y = lane.baseY;
     const level = 42 * (1 - lane.display / GOAL);
@@ -99,7 +100,7 @@ const WalkTheme: GameTheme = {
     lane.avatar.x = BAR_X + BAR_W * (lane.display / GOAL);
     lane.avatar.y = lane.baseY - 6 + (running ? Math.sin(time / 70) * 3 : 0);
     lane.avatar.rotation = running ? 0.12 : 0;
-    if (player.finished) lane.avatar.setScale(1 + Math.sin(time / 120) * 0.06);
+    if (player.finished) pulseSprite(lane.avatar, 1 + Math.sin(time / 120) * 0.06);
   }
 };
 

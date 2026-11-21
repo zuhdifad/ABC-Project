@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { current, day, fmtTime, fmtDate } from "../flow/profile";
-import { charTextureKey } from "../flow/characters";
+import { charTextureKey, sizeSprite } from "../flow/characters";
 import { audio } from "../flow/audio";
 import { clockOut, toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
@@ -165,8 +165,9 @@ export class CityScene extends Phaser.Scene {
       this.add.ellipse(60, 64, 80, 20, 0xffffff, 0.5)
     ];
 
-    this.player = this.add.image(commuting ? 140 : 800, this.baseY, charTextureKey(current.characterId))
-      .setOrigin(0.5, 1).setDisplaySize(44, 66).setDepth(10);
+    this.player = sizeSprite(
+      this.add.image(commuting ? 140 : 800, this.baseY, charTextureKey(current.characterId)), 66
+    ).setOrigin(0.5, 1).setDepth(10);
 
     // the morning objective: a bouncing marker over the tower entrance
     if (commuting) {

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { current, day, fmtDate, fmtTime } from "../flow/profile";
-import { CHARACTERS, charById, charTextureKey } from "../flow/characters";
+import { CHARACTERS, charById, charTextureKey, sizeSprite } from "../flow/characters";
 import { audio } from "../flow/audio";
 import { toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
@@ -45,8 +45,9 @@ export class LobbyScene extends Phaser.Scene {
 
     this.buildWorld();
 
-    this.player = this.add.image(150, this.baseY, charTextureKey(current.characterId))
-      .setOrigin(0.5, 1).setDisplaySize(44, 66).setDepth(10);
+    this.player = sizeSprite(
+      this.add.image(150, this.baseY, charTextureKey(current.characterId)), 66
+    ).setOrigin(0.5, 1).setDepth(10);
 
     this.walker = new Walker(this);
     this.input.keyboard!.on("keydown-E", () => this.enter());
@@ -141,10 +142,10 @@ export class LobbyScene extends Phaser.Scene {
     this.plant(g, 916, 344);
 
     /* receptionist + a colleague crossing the lobby */
-    this.add.image(490, 352, charTextureKey(this.otherCharacter(0)))
-      .setOrigin(0.5, 1).setDisplaySize(40, 60).setDepth(1);
-    this.add.image(690, 404, charTextureKey(this.otherCharacter(1)))
-      .setOrigin(0.5, 1).setDisplaySize(38, 56).setDepth(1).setAlpha(0.95);
+    sizeSprite(this.add.image(490, 352, charTextureKey(this.otherCharacter(0))), 60)
+      .setOrigin(0.5, 1).setDepth(1);
+    sizeSprite(this.add.image(690, 404, charTextureKey(this.otherCharacter(1))), 56)
+      .setOrigin(0.5, 1).setDepth(1).setAlpha(0.95);
   }
 
   private otherCharacter(i: number) {

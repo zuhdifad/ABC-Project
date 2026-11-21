@@ -3,7 +3,7 @@ import type { Room } from "colyseus.js";
 import { THEMES, GOAL, BAR_X, BAR_W, type Lane, type GameTheme } from "../games/registry";
 import { GAME_FONT } from "../flow/theme";
 import { audio } from "../flow/audio";
-import { charTextureKey } from "../flow/characters";
+import { charTextureKey, sizeSprite } from "../flow/characters";
 
 const W = 960;
 const H = 600;
@@ -107,8 +107,9 @@ export class RaceScene extends Phaser.Scene {
 
     const nameText = this.add.text(24, y - 10, player.name + (isSelf ? " (you)" : ""),
       { fontFamily: GAME_FONT, fontSize: "18px", color: isSelf ? "#14615c" : "#4a5b68" });
-    const avatar = this.add.image(0, 0, charTextureKey(player.characterId))
-      .setDisplaySize(36, 54).setOrigin(0.5, 1);
+    const avatar = sizeSprite(
+      this.add.image(0, 0, charTextureKey(player.characterId)), 54
+    ).setOrigin(0.5, 1);
     this.add.rectangle(BAR_X, y + 16, BAR_W, 12, 0xe2ded2).setOrigin(0, 0.5);
     const barFill = this.add.rectangle(BAR_X, y + 16, 0, 12, isSelf ? 0x2e8f88 : 0xa9d9d4).setOrigin(0, 0.5);
     const pctText = this.add.text(BAR_X + BAR_W + 16, y + 16, "0%",
@@ -137,7 +138,12 @@ export class RaceScene extends Phaser.Scene {
     audio.tap();
     const mine = this.lanes.get(this.room.sessionId);
     if (mine) {
-      this.tweens.add({ targets: mine.avatar, scale: 1.3, duration: 60, yoyo: true });
+      /* tween around the fitted scale — a raw `scale: 1.3` would undo sizeSprite() */
+      const base = (mine.avatar.getData("baseScale") as number) || mine.avatar.scaleX;
+      this.tweens.add({
+        targets: mine.avatar, scaleX: base * 1.3, scaleY: base * 1.3,
+        duration: 60, yoyo: true
+      });
     }
   }
 

@@ -238,45 +238,239 @@
     .shake { animation: shake .3s; }
     @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
-    /* ---------- CHARACTER SELECT: big showcase ---------- */
-    .select-card {
-      background: var(--card); border: 3px solid var(--gold); border-radius: 20px;
-      padding: 26px; box-shadow: 0 24px 60px rgba(14,36,54,.14);
-    }
     .kicker { font-family: var(--display); color: var(--gold2); font-size: 15px; letter-spacing: 3px; }
-    .select-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-    .select-head h2 { font-family: var(--display); font-size: 34px; color: var(--orange2); letter-spacing: 1px; }
-    #sel-shift { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--dim); }
-    .select-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 26px; margin-top: 14px; }
-    @media (max-width: 860px) { .select-wrap { grid-template-columns: 1fr; } }
-    .stage {
-      position: relative; background: linear-gradient(180deg, #f7fcfb, #e3f1ee);
-      border: 2px solid var(--line); border-radius: 16px;
-      display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
-      min-height: 420px;
+
+    /* ---------- CHARACTER SELECT: arcade board over a KL night skyline ---------- */
+    #screen-select {
+      width: 100vw; height: 100vh; height: 100dvh; margin: 0; position: relative;
+      overflow: hidden; background: #0a242b; display: none;
     }
-    .stage::after {
-      content: ""; position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
-      width: 62%; height: 26px; border-radius: 50%;
-      background: radial-gradient(ellipse at center, rgba(46,143,136,.28), transparent 70%);
+    #screen-select.on { display: block; }
+    .sel-sky { position: absolute; inset: 0; z-index: 0; }
+    .sel-sky svg { display: block; width: 100%; height: 100%; }
+    #screen-select::after {
+      content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background:
+        radial-gradient(130% 95% at 50% 42%, rgba(3,12,16,0) 36%, rgba(3,12,16,.74) 100%),
+        repeating-linear-gradient(180deg, rgba(255,255,255,.035) 0 1px, rgba(0,0,0,0) 1px 3px);
     }
-    #showcase {
-      position: relative; z-index: 1; height: min(72vh, 620px); max-width: 100%;
-      object-fit: contain; object-position: bottom center;
-      filter: drop-shadow(0 18px 24px rgba(120,40,0,.25));
+    .sel-board {
+      position: relative; z-index: 2; height: 100%;
+      display: flex; flex-direction: column; gap: clamp(3px, .9vh, 10px);
+      padding: clamp(8px, 1.7vh, 20px) clamp(10px, 2.4vw, 34px) clamp(8px, 1.5vh, 16px);
     }
-    .who-panel { display: flex; flex-direction: column; gap: 10px; }
-    #sel-name { font-family: var(--display); font-size: 44px; color: var(--deep); line-height: 1; }
-    #sel-role { font-size: 14px; font-weight: 700; letter-spacing: 1px; color: var(--dim); margin-bottom: 6px; }
-    #roster { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 46vh; padding-right: 4px; }
-    .roster-item {
-      display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
-      background: var(--paper); border: 2px solid var(--line); border-radius: 14px; padding: 8px 12px;
+    .sel-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-right: 52px; }
+    .sel-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--display); font-size: clamp(10px, 1.15vw, 14px); letter-spacing: 2px;
+      color: #dff2ee; background: linear-gradient(180deg, #1d5763, #0b2a33);
+      border: 2px solid var(--gold2); border-radius: 7px; padding: 5px 10px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2);
     }
-    .roster-item img { width: 44px; height: 60px; object-fit: cover; object-position: top center; border-radius: 8px; background: #fff; }
-    .roster-item b { font-family: var(--display); font-size: 19px; color: var(--ink); letter-spacing: 1px; display: block; }
-    .roster-item em { font-style: normal; font-size: 12px; color: var(--dim); }
-    .roster-item.sel { border-color: var(--orange); background: #fff; box-shadow: 0 0 0 3px rgba(255,146,43,.25); }
+    .sel-brand b {
+      font-size: 1.5em; letter-spacing: 1px; color: transparent;
+      background: linear-gradient(180deg, var(--goldlight), var(--gold2));
+      -webkit-background-clip: text; background-clip: text;
+    }
+    #sel-shift {
+      font-size: clamp(7.5px, .82vw, 11px); font-weight: 800; letter-spacing: 2px;
+      color: var(--goldlight); background: rgba(8,32,40,.72); white-space: nowrap;
+      border: 1px solid rgba(227,180,92,.55); border-radius: 999px; padding: 4px 10px;
+    }
+    .sel-banner { text-align: center; line-height: 1; }
+    .sel-banner h2 {
+      font-family: var(--display); font-size: clamp(22px, 4.3vw, 50px);
+      letter-spacing: 3px; color: #fff3d2;
+      text-shadow: 0 2px 0 var(--gold2), 0 5px 0 #6f4a14, 0 12px 26px rgba(0,0,0,.55);
+    }
+    .sel-banner p {
+      margin-top: 5px; font-size: clamp(7px, .84vw, 10px); font-weight: 800;
+      letter-spacing: 3px; color: #86bcb8;
+    }
+    .sel-stage {
+      flex: 1; min-height: 0; position: relative;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .sel-stage::before {
+      content: ""; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+      width: min(900px, 88%); height: 92%;
+      background: radial-gradient(58% 72% at 50% 96%, rgba(227,180,92,.22), rgba(227,180,92,0) 70%);
+      pointer-events: none;
+    }
+    .sel-floor {
+      position: absolute; left: 3%; right: 3%; bottom: 0; height: 2px;
+      background: linear-gradient(90deg, rgba(227,180,92,0), rgba(227,180,92,.6) 16%, rgba(227,180,92,.6) 84%, rgba(227,180,92,0));
+    }
+    .sel-floor::after {
+      content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 26px;
+      background: radial-gradient(50% 100% at 50% 0, rgba(227,180,92,.2), rgba(227,180,92,0) 72%);
+    }
+    .sel-deck { position: relative; width: 100%; display: flex; justify-content: center; }
+    .sel-track {
+      position: relative; z-index: 1; width: 100%;
+      display: flex; align-items: flex-end; justify-content: center; gap: clamp(6px, 1.35vw, 20px);
+    }
+    .sel-slot {
+      position: relative; display: flex; flex-direction: column; align-items: center;
+      width: clamp(88px, 13vw, 190px); padding: 0 0 clamp(48px, 8.6vh, 82px);
+      background: none; border: 0; font: inherit; cursor: pointer;
+      filter: saturate(.72) brightness(.6);
+      transition: width .22s ease, filter .22s ease;
+    }
+    .sel-slot:focus-visible { outline: none; }
+    .sel-slot.on { width: clamp(114px, 17.8vw, 268px); filter: none; }
+    .sel-slot.on::before {
+      content: ""; position: absolute; left: 50%; bottom: clamp(48px, 8.6vh, 82px);
+      transform: translateX(-50%); width: 240%; height: 130%;
+      background: radial-gradient(48% 60% at 50% 86%, rgba(247,227,180,.17), rgba(247,227,180,0) 72%);
+      pointer-events: none; z-index: 0;
+    }
+    .sel-frame {
+      position: relative; width: 100%; aspect-ratio: 5 / 6; overflow: hidden;
+      display: flex; align-items: flex-end; justify-content: center;
+      border: 3px solid #3d6b72; border-radius: 8px;
+      background: linear-gradient(180deg, #35636d, #163a44);
+      box-shadow: 0 12px 24px rgba(0,0,0,.5);
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .sel-slot.on .sel-frame {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px rgba(227,180,92,.25), 0 0 30px rgba(227,180,92,.45), 0 16px 30px rgba(0,0,0,.55);
+    }
+    .sel-frame::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(72% 56% at 50% 20%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
+    }
+    .sc-office .sel-frame { background: linear-gradient(180deg, #e9f1ee, #cfdcd6 58%, #8ea6a2); }
+    .sc-cafe   .sel-frame { background: linear-gradient(180deg, #f8e6cb, #e3c39a 58%, #9c7a52); }
+    .sc-street .sel-frame { background: linear-gradient(180deg, #f8dcc0, #e0b189 58%, #8a6450); }
+    .sc-site   .sel-frame { background: linear-gradient(180deg, #e8e9e4, #c6cac3 58%, #7f847d); }
+    .sel-art {
+      position: relative; width: 112%; height: 112%; margin-bottom: -6%;
+      object-fit: cover; object-position: top center;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+    }
+    .sel-ribbon {
+      position: absolute; z-index: 3; top: 5px; left: 50%; transform: translateX(-50%) rotate(-1.5deg);
+      display: none; white-space: nowrap; letter-spacing: 1px;
+      font-family: var(--display); font-size: clamp(6px, .72vw, 9px);
+      color: #3a2405; padding: 2px 8px; border-radius: 3px;
+      background: linear-gradient(180deg, var(--goldlight), var(--gold));
+      border: 1px solid #8d6420; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+    }
+    .sel-slot.on .sel-ribbon { display: block; }
+    .sel-tag {
+      position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+      padding: 16px 3px 4px; line-height: 1.1;
+      display: flex; flex-direction: column; align-items: center;
+      background: linear-gradient(180deg, rgba(4,18,22,0), rgba(4,18,22,.86) 52%);
+    }
+    .sel-tag b {
+      font-family: var(--display); letter-spacing: 1px; color: #fff;
+      font-size: clamp(8px, .95vw, 13px); text-shadow: 0 2px 3px rgba(0,0,0,.75);
+    }
+    .sel-tag em {
+      font-style: normal; font-weight: 800; letter-spacing: .8px; color: var(--goldlight);
+      font-size: clamp(5.5px, .62vw, 8.5px);
+    }
+    .sel-podium {
+      position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+      width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      opacity: 0; transition: opacity .2s ease; pointer-events: none;
+    }
+    .sel-slot.on .sel-podium { opacity: 1; }
+    .sel-chibi {
+      height: clamp(38px, 7.2vh, 72px); width: auto; margin-bottom: -2px;
+      filter: drop-shadow(0 5px 7px rgba(0,0,0,.55)) saturate(1.1);
+    }
+    .sel-pod {
+      width: 100%; height: clamp(7px, 1.3vh, 14px);
+      background: linear-gradient(180deg, var(--goldlight), var(--gold2));
+      clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+      box-shadow: 0 4px 12px rgba(227,180,92,.4);
+    }
+    .sel-bottom {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: clamp(8px, 1.6vw, 22px);
+    }
+    .sel-info {
+      display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px 11px;
+      width: min(580px, 62vw);
+      background: linear-gradient(180deg, rgba(15,52,60,.95), rgba(6,24,30,.97));
+      border: 2px solid var(--gold2); border-radius: 9px; padding: 9px 11px;
+      box-shadow: 0 14px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .sel-thumb {
+      width: clamp(46px, 6.2vh, 66px); aspect-ratio: 5 / 6;
+      object-fit: cover; object-position: top center;
+      border: 2px solid var(--gold); border-radius: 5px; background: #10353e;
+    }
+    .sel-who { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    #sel-name {
+      font-family: var(--display); font-size: clamp(15px, 1.9vw, 26px);
+      line-height: .92; letter-spacing: 1px; color: #fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,.5);
+    }
+    .sel-sub { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    #sel-role { font-size: clamp(8px, .82vw, 11px); font-weight: 800; letter-spacing: 1.4px; color: #a9d1cd; }
+    #sel-persona {
+      font-size: clamp(7px, .74vw, 10px); font-weight: 800; letter-spacing: 1px;
+      text-transform: uppercase; color: #3d2a06; padding: 1px 6px; border-radius: 3px;
+      background: linear-gradient(180deg, var(--goldlight), var(--gold));
+    }
+    #sel-meters { display: grid; gap: 1px; }
+    .sel-meter { display: grid; grid-template-columns: clamp(56px, 6.4vw, 82px) auto; align-items: center; gap: 7px; }
+    .sel-meter span { font-size: clamp(6.5px, .68vw, 9px); font-weight: 800; letter-spacing: 1.2px; color: #8fc0bc; }
+    .sel-meter i {
+      font-style: normal; display: flex; gap: 2px; line-height: 1;
+      font-size: clamp(9px, 1.05vw, 14px); color: #2d5a61;
+    }
+    .sel-meter i b { font-weight: 400; }
+    .sel-meter i b.on { color: var(--gold); text-shadow: 0 0 7px rgba(227,180,92,.55); }
+    .sel-lines { display: flex; flex-direction: column; gap: 1px; }
+    .sel-lines div { display: flex; gap: 6px; font-size: clamp(6.5px, .7vw, 9.5px); line-height: 1.32; }
+    .sel-lines b { flex: 0 0 auto; width: clamp(46px, 5.2vw, 62px); letter-spacing: 1px; color: #6ea39f; }
+    .sel-lines span { color: #daeeea; font-weight: 700; }
+    .sel-ctrls { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+    .sel-nav { display: flex; align-items: center; gap: 8px; }
+    .sel-arrow {
+      width: clamp(26px, 3.2vh, 36px); height: clamp(26px, 3.2vh, 36px); cursor: pointer;
+      border: 2px solid var(--gold2); border-radius: 6px; background: rgba(10,38,46,.9);
+      color: var(--goldlight); font-size: clamp(10px, 1.1vh, 13px); line-height: 1;
+    }
+    .sel-arrow:active { transform: scale(.94); }
+    .sel-nav span {
+      font-family: var(--display); letter-spacing: 2px; color: #cfeae5;
+      font-size: clamp(9px, 1vw, 14px);
+    }
+    .sel-keys {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end;
+      font-size: clamp(6.5px, .7vw, 9.5px); font-weight: 800; letter-spacing: 1.4px; color: #8bb8b4;
+    }
+    .sel-keys b { color: var(--gold); }
+    #start-game {
+      cursor: pointer; white-space: nowrap; font-family: var(--display);
+      font-size: clamp(11px, 1.25vw, 17px); letter-spacing: 2px;
+      color: #33210a; padding: 8px 18px; border-radius: 6px; border: 2px solid #8d6420;
+      background: linear-gradient(180deg, var(--goldlight), var(--gold) 55%, var(--gold2));
+      box-shadow: 0 6px 0 #6f4a14, 0 12px 22px rgba(0,0,0,.45);
+    }
+    #start-game:active { transform: translateY(3px); box-shadow: 0 3px 0 #6f4a14, 0 8px 16px rgba(0,0,0,.45); }
+    @media (max-width: 820px) {
+      .sel-info { width: 100%; }
+      .sel-bottom { flex-direction: column; align-items: stretch; }
+      .sel-ctrls { flex-direction: row; justify-content: space-between; align-items: center; }
+      .sel-keys { justify-content: flex-start; }
+      .sel-title-hide { display: none; }
+    }
+    @media (max-height: 620px) {
+      .sel-banner p { display: none; }
+      .sel-slot { padding-bottom: 30px; }
+      .sel-chibi { height: 22px; }
+      .sel-brand { padding: 3px 8px; }
+      .sel-info { padding: 6px 9px; gap: 6px 9px; }
+      .sel-thumb { width: 42px; }
+    }
 
     /* ---------- SUMMARY ---------- */
     .sum-card { background: var(--card); border: 3px solid var(--gold); border-radius: 20px; padding: 28px; width: min(560px, 94vw); margin: 0 auto; box-shadow: 0 24px 60px rgba(14,36,54,.14); }
@@ -370,22 +564,21 @@
     /* ---------- SHORT WINDOWS: fit select + summary on one screen ---------- */
     @media (max-height: 560px) {
       .screen { margin: 8px 0; }
-      .select-card { padding: 12px 14px; }
-      .select-head h2 { font-size: 22px; }
       .kicker { font-size: 11px; letter-spacing: 2px; }
-      #sel-shift { font-size: 10px; letter-spacing: 1px; }
-      .select-wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px; margin-top: 8px; }
-      .stage { min-height: 0; height: calc(100vh - 150px); max-height: 340px; border-radius: 12px; }
-      #showcase { height: 100%; }
-      .who-panel { gap: 6px; }
-      #sel-name { font-size: 24px; }
-      #sel-role { font-size: 11px; margin-bottom: 2px; }
-      #roster { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: none; overflow: visible; padding-right: 0; }
-      .roster-item { padding: 4px 7px; gap: 7px; border-radius: 10px; }
-      .roster-item img { width: 24px; height: 32px; }
-      .roster-item b { font-size: 13px; }
-      .roster-item em { font-size: 9px; }
-      #start-game { font-size: 15px; padding: 9px; }
+      #sel-shift { font-size: 9px; letter-spacing: 1px; padding: 3px 8px; }
+      .sel-banner h2 { font-size: clamp(18px, 3.6vw, 30px); }
+      .sel-banner p { display: none; }
+      .sel-slot { padding-bottom: 26px; width: clamp(62px, 9vw, 104px); }
+      .sel-slot.on { width: clamp(82px, 11.6vw, 140px); }
+      .sel-chibi { height: 20px; }
+      .sel-tag b { font-size: 9px; }
+      .sel-tag em { font-size: 6px; }
+      .sel-info { padding: 6px 9px; gap: 5px 8px; }
+      .sel-thumb { width: 40px; }
+      #sel-name { font-size: 15px; }
+      #sel-meters { gap: 0; }
+      .sel-lines div { font-size: 7px; }
+      #start-game { font-size: 12px; padding: 6px 12px; }
       .sum-card { padding: 14px 16px; width: min(540px, 96vw); }
       .sum-card h2 { font-size: 22px; }
       .sum-card .sub { font-size: 12px; margin: 2px 0 8px; }
@@ -403,15 +596,15 @@
       .login-card label { font-size: 13px; margin-bottom: 5px; }
       .login-card input[type=text], .login-card input[type=password] { padding: 10px 12px; font-size: 14px; }
       .btn.clockin { font-size: 19px; padding: 11px; }
-      .select-card { padding: 12px; }
-      .select-head h2 { font-size: 22px; }
-      .stage { min-height: 0; height: 36vh; }
-      #showcase { height: 100%; }
-      #sel-name { font-size: 28px; }
-      #roster { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: none; }
-      .roster-item { padding: 5px 8px; gap: 8px; }
-      .roster-item img { width: 28px; height: 38px; }
-      .roster-item b { font-size: 14px; }
+      .sel-board { padding: 8px 8px 10px; }
+      .sel-banner h2 { letter-spacing: 1px; }
+      .sel-stage { align-items: center; }
+      .sel-keys { display: none; }
+      .sel-ctrls { gap: 10px; }
+      .sel-slot { width: clamp(58px, 19vw, 92px); padding-bottom: 28px; }
+      .sel-slot.on { width: clamp(74px, 26vw, 124px); }
+      .sel-chibi { height: 22px; }
+      .sel-info { padding: 7px 9px; }
       .sum-card { padding: 18px 16px; }
       #sum-log { max-height: 150px; }
       #hud-left { font-size: 10px; padding: 4px 8px; }
@@ -477,22 +670,135 @@
       </form>
     </section>
 
-    <section class="screen" data-screen="select">
-      <div class="select-card">
-        <div class="select-head">
-          <div>
-            <div class="kicker">ABC PROJECT</div>
-            <h2>SELECT YOUR CHARACTER</h2>
-          </div>
+    <section class="screen" id="screen-select" data-screen="select">
+      <div class="sel-sky" aria-hidden="true">
+        <svg viewBox="0 0 1200 460" preserveAspectRatio="xMidYMax slice">
+          <defs>
+            <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1c626e"/>
+              <stop offset=".55" stop-color="#134049"/>
+              <stop offset="1" stop-color="#09222a"/>
+            </linearGradient>
+            <linearGradient id="towG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#317f86"/>
+              <stop offset="1" stop-color="#10323c"/>
+            </linearGradient>
+            <linearGradient id="hazeG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0b2a33" stop-opacity="0"/>
+              <stop offset="1" stop-color="#0b2a33" stop-opacity=".92"/>
+            </linearGradient>
+            <pattern id="winG" width="11" height="15" patternUnits="userSpaceOnUse">
+              <rect x="2.5" y="3" width="4.5" height="5.5" fill="#9fe0d6" opacity=".16"/>
+            </pattern>
+          </defs>
+          <rect width="1200" height="460" fill="url(#skyG)"/>
+          <circle cx="972" cy="104" r="96" fill="#f7e3b4" opacity=".05"/>
+          <circle cx="972" cy="104" r="38" fill="#f7e3b4" opacity=".12"/>
+
+          <g fill="#0d2f38">
+            <rect x="20" y="290" width="86" height="130"/>
+            <rect x="118" y="252" width="58" height="168"/>
+            <rect x="188" y="300" width="74" height="120"/>
+            <rect x="470" y="272" width="70" height="148"/>
+            <rect x="552" y="240" width="52" height="180"/>
+            <rect x="612" y="296" width="96" height="124"/>
+            <rect x="726" y="256" width="60" height="164"/>
+            <rect x="800" y="300" width="82" height="120"/>
+            <rect x="1090" y="286" width="96" height="134"/>
+          </g>
+          <g fill="url(#winG)">
+            <rect x="20" y="290" width="86" height="130"/>
+            <rect x="118" y="252" width="58" height="168"/>
+            <rect x="188" y="300" width="74" height="120"/>
+            <rect x="470" y="272" width="70" height="148"/>
+            <rect x="552" y="240" width="52" height="180"/>
+            <rect x="612" y="296" width="96" height="124"/>
+            <rect x="726" y="256" width="60" height="164"/>
+            <rect x="800" y="300" width="82" height="120"/>
+            <rect x="1090" y="286" width="96" height="134"/>
+          </g>
+
+          <g fill="url(#towG)">
+            <rect x="286" y="180" width="34" height="200" rx="2"/>
+            <rect x="296" y="146" width="14" height="34"/>
+            <rect x="300" y="120" width="6" height="26"/>
+            <rect x="360" y="180" width="34" height="200" rx="2"/>
+            <rect x="370" y="146" width="14" height="34"/>
+            <rect x="374" y="120" width="6" height="26"/>
+          </g>
+          <g fill="url(#winG)">
+            <rect x="286" y="180" width="34" height="200"/>
+            <rect x="360" y="180" width="34" height="200"/>
+          </g>
+          <rect x="320" y="232" width="40" height="6" rx="3" fill="#8fd8cf" opacity=".4"/>
+
+          <g fill="url(#towG)">
+            <rect x="895" y="150" width="10" height="230"/>
+            <rect x="874" y="146" width="52" height="18" rx="6"/>
+            <rect x="902" y="86" width="5" height="62"/>
+          </g>
+          <rect x="874" y="146" width="52" height="5" fill="#8fd8cf" opacity=".3"/>
+          <ellipse cx="900" cy="184" rx="38" ry="9" fill="#0b2a33" opacity=".5"/>
+
+          <g fill="#0b262e" opacity=".8">
+            <rect x="0" y="404" width="1200" height="10"/>
+            <rect x="120" y="414" width="14" height="46"/>
+            <rect x="300" y="414" width="14" height="46"/>
+            <rect x="480" y="414" width="14" height="46"/>
+            <rect x="660" y="414" width="14" height="46"/>
+            <rect x="840" y="414" width="14" height="46"/>
+            <rect x="1020" y="414" width="14" height="46"/>
+          </g>
+          <rect y="360" width="1200" height="100" fill="url(#hazeG)"/>
+        </svg>
+      </div>
+
+      <div class="sel-board">
+        <div class="sel-top">
+          <div class="sel-brand"><b>ABC</b> PROJECT</div>
           <div id="sel-shift">SHIFT #1</div>
         </div>
-        <div class="select-wrap">
-          <div class="stage"><img id="showcase" src="/chars/ayu.jpg" alt="Selected character" /></div>
-          <div class="who-panel">
-            <div id="sel-name">Ayu</div>
-            <div id="sel-role">Finance Analyst</div>
-            <div id="roster"></div>
-            <button class="btn" id="start-game">▶ START GAME</button>
+
+        <header class="sel-banner">
+          <h2>CHARACTER SELECTION</h2>
+          <p>CHOOSE YOUR WORKER · KUALA LUMPUR CITY</p>
+        </header>
+
+        <div class="sel-stage">
+          <div class="sel-deck">
+            <div class="sel-track" id="sel-cards"></div>
+            <i class="sel-floor"></i>
+          </div>
+        </div>
+
+        <div class="sel-bottom">
+          <aside class="sel-info" id="sel-info">
+            <img class="sel-thumb" id="sel-thumb" src="/chars/ayu-face.png" alt="" />
+            <div class="sel-who">
+              <div id="sel-name">AYU</div>
+              <div class="sel-sub">
+                <span id="sel-role">Finance Analyst</span>
+                <span id="sel-persona">(Meticulous)</span>
+              </div>
+              <div id="sel-meters"></div>
+              <div class="sel-lines">
+                <div><b>PHYSIQUE</b><span id="sel-phys">Petite · precise steps</span></div>
+                <div><b>SPECIALTY</b><span id="sel-spec">Balanced Books</span></div>
+              </div>
+            </div>
+          </aside>
+
+          <div class="sel-ctrls">
+            <div class="sel-nav">
+              <button class="sel-arrow" id="sel-prev" type="button" aria-label="Previous worker">◀</button>
+              <span>SELECT</span>
+              <button class="sel-arrow" id="sel-next" type="button" aria-label="Next worker">▶</button>
+            </div>
+            <button id="start-game" type="button">ENTER — CONFIRM</button>
+            <div class="sel-keys">
+              <span><b>ENTER</b>: CONFIRM</span>
+              <span><b>ESC</b>: BACK</span>
+            </div>
           </div>
         </div>
       </div>

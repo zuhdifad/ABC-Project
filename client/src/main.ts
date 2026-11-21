@@ -13,7 +13,8 @@ class BootScene extends Phaser.Scene {
   constructor() { super("Boot"); }
 
   preload() {
-    for (const c of CHARACTERS) this.load.image(charTextureKey(c.id), c.img);
+    // in-game only ever shows the derived street sprite, never the 1024px portrait
+    for (const c of CHARACTERS) this.load.image(charTextureKey(c.id), c.sprite);
   }
 }
 

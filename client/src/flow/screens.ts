@@ -3,18 +3,23 @@ import {
   loadProfiles, saveProfile, hashPin, setCurrent, current,
   setDay, newDay, day, fmtTime, fmtDate, type Profile
 } from "./profile";
-import { CHARACTERS, charById } from "./characters";
+import { CHARACTERS, charIndex, charMods, starRating } from "./characters";
 import { audio, syncMuteButtons } from "./audio";
 
 let game: Phaser.Game;
 let draft: Profile | null = null;
-let selectedId = CHARACTERS[0].id;
+/** which worker the arcade board has highlighted */
+let selIndex = 0;
+/** cards on the board; the highlighted one sits second from the left */
+const SLOTS = 4;
+const HIGHLIGHT = 1;
 
 const $ = (id: string) => document.getElementById(id)!;
 
 export function initFlow(g: Phaser.Game) {
   game = g;
-  buildRoster();
+  buildCarousel();
+  renderSelect();
   tickTitleClock();
   window.setInterval(tickTitleClock, 1000);
   show("title");
@@ -33,6 +38,27 @@ export function initFlow(g: Phaser.Game) {
     startFromTitle();
   });
 
+  // board navigation: arrows / A-D browse, Enter confirms, Esc backs out
+  document.addEventListener("keydown", (e) => {
+    if (!$("screen-select").classList.contains("on")) return;
+    const k = e.key;
+    if (k === "ArrowLeft" || k === "a" || k === "A") {
+      e.preventDefault(); stepSelect(-1);
+    } else if (k === "ArrowRight" || k === "d" || k === "D") {
+      e.preventDefault(); stepSelect(1);
+    } else if (k === "Enter" || k === " ") {
+      e.preventDefault(); confirmSelect();
+    } else if (k === "Escape" || k === "Backspace") {
+      e.preventDefault();
+      audio.deny();
+      show("login");
+    }
+  });
+
+  $("sel-prev").onclick = () => stepSelect(-1);
+  $("sel-next").onclick = () => stepSelect(1);
+  $("start-game").onclick = () => confirmSelect();
+
   ($("login-form") as HTMLFormElement).onsubmit = async (e) => {
     e.preventDefault();
     const name = ($("f-name") as HTMLInputElement).value.trim();
@@ -48,25 +74,15 @@ export function initFlow(g: Phaser.Game) {
     audio.click();
     draft = existing ?? { name, pinHash: hash, characterId: CHARACTERS[0].id, money: 0, day: 0, wins: 0 };
     if (!existing) saveProfile(draft);
-    selectedId = draft.characterId;
+    selIndex = charIndex(draft.characterId);
     $("sel-shift").textContent = `SHIFT #${draft.day + 1} · ${fmtDate()}`;
-    repaintSelect();
+    renderSelect();
     show("select");
-  };
-
-  $("start-game").onclick = () => {
-    audio.chime();
-    draft!.characterId = selectedId;
-    setCurrent(draft);
-    saveProfile(draft!);
-    setDay(newDay());
-    enterCity();
   };
 
   $("sum-next").onclick = () => {
     audio.click();
-    setDay(newDay());
-    enterCity();
+    startShift();
   };
   $("sum-title").onclick = () => {
     audio.click();
@@ -163,27 +179,114 @@ function fail(id: string, msg: string) {
   audio.deny();
 }
 
-function buildRoster() {
-  const list = $("roster");
-  for (const c of CHARACTERS) {
-    const b = document.createElement("button");
-    b.className = "roster-item";
-    b.innerHTML = `<img src="${c.img}" alt="${c.name}" /><span><b>${c.name}</b><em>${c.role}</em></span>`;
-    b.onclick = () => { audio.click(); selectedId = c.id; repaintSelect(); };
-    (b as any)._id = c.id;
-    list.appendChild(b);
+interface Slot {
+  el: HTMLButtonElement;
+  art: HTMLImageElement;
+  chibi: HTMLImageElement;
+  name: HTMLElement;
+  persona: HTMLElement;
+}
+let slots: Slot[] = [];
+
+function buildCarousel() {
+  const track = $("sel-cards");
+  track.innerHTML = "";
+  slots = [];
+  for (let i = 0; i < SLOTS; i++) {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "sel-slot";
+    el.innerHTML = `
+      <div class="sel-frame">
+        <span class="sel-ribbon">SELECTED</span>
+        <img class="sel-art" alt="" />
+        <div class="sel-tag"><b></b><em></em></div>
+      </div>
+      <div class="sel-podium"><img class="sel-chibi" alt="" /><i class="sel-pod"></i></div>`;
+    el.onclick = () => {
+      const id = el.dataset.id;
+      if (!id) return;
+      if (id === CHARACTERS[selIndex].id) confirmSelect();
+      else selectById(id);
+    };
+    track.appendChild(el);
+    slots.push({
+      el,
+      art: el.querySelector(".sel-art") as HTMLImageElement,
+      chibi: el.querySelector(".sel-chibi") as HTMLImageElement,
+      name: el.querySelector(".sel-tag b") as HTMLElement,
+      persona: el.querySelector(".sel-tag em") as HTMLElement
+    });
   }
 }
 
-function repaintSelect() {
-  const c = charById(selectedId);
-  const img = $("showcase") as HTMLImageElement;
-  img.classList.remove("swap");
-  void img.offsetWidth;
-  img.src = c.img;
-  img.classList.add("swap");
-  $("sel-name").textContent = c.name;
-  $("sel-role").textContent = c.role;
-  document.querySelectorAll(".roster-item").forEach(b =>
-    b.classList.toggle("sel", (b as any)._id === selectedId));
+function selectById(id: string) {
+  const i = charIndex(id);
+  if (i === selIndex) return;
+  selIndex = i;
+  audio.click();
+  renderSelect();
+}
+
+function stepSelect(dir: number) {
+  selIndex = (selIndex + dir + CHARACTERS.length) % CHARACTERS.length;
+  audio.click();
+  renderSelect();
+}
+
+/** Repaint the four cards as a window over the whole roster, wrap-around. */
+function renderSelect() {
+  slots.forEach((s, i) => {
+    const c = CHARACTERS[(selIndex + i - HIGHLIGHT + CHARACTERS.length) % CHARACTERS.length];
+    const on = i === HIGHLIGHT;
+    s.el.className = `sel-slot sc-${c.scene}` + (on ? " on" : "");
+    s.el.dataset.id = c.id;
+    if (s.art.getAttribute("src") !== c.face) s.art.src = c.face;
+    s.art.alt = c.name;
+    if (s.chibi.getAttribute("src") !== c.sprite) s.chibi.src = c.sprite;
+    s.name.textContent = c.name.toUpperCase();
+    s.persona.textContent = `(${c.persona})`;
+  });
+  paintInfo();
+}
+
+function meter(label: string, value: number): string {
+  const n = starRating(value);
+  let stars = "";
+  for (let i = 0; i < 5; i++) stars += `<b class="${i < n ? "on" : ""}">★</b>`;
+  return `<div class="sel-meter"><span>${label}</span><i>${stars}</i></div>`;
+}
+
+function paintInfo() {
+  const c = CHARACTERS[selIndex];
+  ($("sel-thumb") as HTMLImageElement).src = c.face;
+  $("sel-name").textContent = c.name.toUpperCase();
+  $("sel-role").textContent = c.role.toUpperCase();
+  $("sel-persona").textContent = `(${c.persona})`;
+  $("sel-meters").innerHTML =
+    meter("ENERGY", c.stats.energy) +
+    meter("FOCUS", c.stats.focus) +
+    meter("COFFEE NEED", c.stats.coffee);
+  $("sel-phys").textContent = c.physique;
+  $("sel-spec").textContent = `${c.perk.label} — ${c.perk.detail}`;
+  const info = $("sel-info");
+  info.classList.remove("swap");
+  void info.offsetWidth;
+  info.classList.add("swap");
+}
+
+function confirmSelect() {
+  if (!draft) return;
+  audio.chime();
+  draft.characterId = CHARACTERS[selIndex].id;
+  setCurrent(draft);
+  saveProfile(draft);
+  startShift();
+}
+
+/** Fresh day, but the stamina you start with is the worker's own. */
+function startShift() {
+  setDay(newDay());
+  day.energy = charMods(current?.characterId).startEnergy;
+  enterCity();
 }

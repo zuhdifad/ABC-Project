@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { Room } from "colyseus.js";
 import { current, day, fmtDate, fmtTime, addLog, saveProfile } from "../flow/profile";
-import { CHARACTERS, charById, charTextureKey } from "../flow/characters";
+import { CHARACTERS, charById, charTextureKey, sizeSprite } from "../flow/characters";
 import { audio } from "../flow/audio";
 import { toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
@@ -66,8 +66,9 @@ export class RoomScene extends Phaser.Scene {
     this.friendId = (CHARACTERS.find(c => c.id !== current!.characterId) ?? CHARACTERS[0]).id;
     this.buildWorld();
 
-    this.player = this.add.image(150, this.baseY, charTextureKey(current.characterId))
-      .setOrigin(0.5, 1).setDisplaySize(44, 66).setDepth(10);
+    this.player = sizeSprite(
+      this.add.image(150, this.baseY, charTextureKey(current.characterId)), 66
+    ).setOrigin(0.5, 1).setDepth(10);
 
     this.walker = new Walker(this);
     this.input.keyboard!.on("keydown-E", () => this.interact());
@@ -137,8 +138,9 @@ export class RoomScene extends Phaser.Scene {
     this.plaque(104, 116, "← LOBBY", P.teal);
 
     /* coworker — click them to challenge a coffee chug */
-    this.friendSprite = this.add.image(252, 360, charTextureKey(this.friendId))
-      .setOrigin(0.5, 1).setDisplaySize(42, 62).setDepth(4)
+    this.friendSprite = sizeSprite(
+      this.add.image(252, 360, charTextureKey(this.friendId)), 62
+    ).setOrigin(0.5, 1).setDepth(4)
       .setInteractive({ useHandCursor: true });
     this.friendSprite.on("pointerover", () => this.friendSprite.setTint(0xfff3cf));
     this.friendSprite.on("pointerout", () => this.friendSprite.clearTint());
@@ -216,7 +218,7 @@ export class RoomScene extends Phaser.Scene {
     this.player.x = 470;
     this.baseY = 470;
     this.player.y = this.baseY;
-    this.player.setDisplaySize(44, 60);
+    sizeSprite(this.player, 60);
     if (day.stage === "room") day.stage = "seated";
     audio.chime();
     setGoal("GOAL · Coffee · laptop · chat — clock out at home when done");
@@ -226,7 +228,7 @@ export class RoomScene extends Phaser.Scene {
 
   private stand() {
     this.seated = false;
-    this.player.setDisplaySize(44, 66);
+    sizeSprite(this.player, 66);
     this.baseY = 480;
   }
 
