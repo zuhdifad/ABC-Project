@@ -4,36 +4,41 @@ import { charTextureKey, sizeSprite } from "../flow/characters";
 import { audio } from "../flow/audio";
 import { clockOut, toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
+import { TILE } from "../art/tiles";
+import { propTextureKey, type PropKind } from "../art/props";
+import {
+  buildWorld, blockedAt, drawMinimap, PROPS, ZONES, SCALE, WORLD_W, WORLD_H,
+  SPAWN_MEADOW, SPAWN_OFFICE, type World, type ZoneDef
+} from "../art/map";
 
-const W = 960, H = 600;
-const DOORS = [
-  { id: "home", x: 140, r: 62, emoji: "🏠", label: "🏠 Go home — clock out" },
-  { id: "cafe", x: 360, r: 60, emoji: "☕", label: "☕ Coffee shop" },
-  { id: "station", x: 580, r: 60, emoji: "🚉", label: "🚉 LRT station" },
-  { id: "office", x: 800, r: 105, emoji: "🏢", label: "🏢 ABC Tower — clock in" }
-];
+const PLAYER_H = 100;
+/** props that get a soft ground shadow (buildings, trunks, carts) */
+const SHADOWED = new Set<PropKind>([
+  "cottage", "cafe", "station", "tower", "cart", "oak", "oakSmall", "pine",
+  "bush", "bushBerry", "bench", "planter", "rock", "stump", "crate", "barrel"
+]);
 
-// palette lifted from the cover art
-const C = {
-  skyTop: 0xd9f0ec, skyLow: 0xa8d8d2,
-  tower: 0x9fbdc7, towerLight: 0xc4dcdd, glass: 0xcfe8e4, glassLine: 0x9dc2be,
-  navy: 0x16324a, gold: 0xe3b45c, gold2: 0xc9922f,
-  cream: 0xf6efe0, cream2: 0xf7e6cd, walk: 0xf0e6d2, tile: 0xe3d6bd,
-  curb: 0xcfc3ab, road: 0x93a3a3, roadLine: 0xf4f6f3, lower: 0xe6dfcd,
-  green: 0x4fae4e, green2: 0x6fc95e, trunk: 0x8d6b4a,
-  red: 0xd6544a, orange: 0xf0954a, teal: 0x2e8f88
-};
-
+/**
+ * Maple Meadow, top-down.
+ *
+ * The village is a 44 x 34 tile pixel map (one ground texture, one sprite per
+ * prop) with the camera riding the player. Everything that used to be a flat
+ * side-scroll band is now a place: a flowered meadow with a merchant cart, a
+ * fenced path north, a cobbled high street and ABC Tower at the top.
+ */
 export class CityScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Image;
-  private baseY = 400;
-  private target: { x: number; y: number } | null = null;
+  private shadow!: Phaser.GameObjects.Image;
   private walker!: Walker;
-  private train!: Phaser.GameObjects.Container;
-  private clouds: Phaser.GameObjects.Ellipse[] = [];
-  private near: (typeof DOORS)[number] | null = null;
-  private lastClock = "";
+  private world!: World;
+  private base = { x: 0, y: 0 };
+  private target: { x: number; y: number } | null = null;
+  private near: ZoneDef | null = null;
   private facing = 1;
+  private lastClock = "";
+  private lastMini = 0;
+  /** seconds a tap target has been unable to make progress */
+  private stuck = 0;
 
   constructor() { super("City"); }
 
@@ -41,263 +46,86 @@ export class CityScene extends Phaser.Scene {
     if (!current) return;
     this.target = null;
     this.near = null;
-    this.clouds = [];
-    this.baseY = 400;
-    this.lastClock = "";
     this.facing = 1;
+    this.lastClock = "";
+    this.lastMini = 0;
     document.body.classList.add("scene-city");
     document.body.classList.remove("scene-race", "scene-office", "scene-room");
 
     const commuting = day.stage === "commute";
+    const spawn = commuting ? SPAWN_MEADOW : SPAWN_OFFICE;
+    this.base = { x: spawn.x * TILE * SCALE, y: spawn.y * TILE * SCALE };
 
-    const g = this.add.graphics();
+    this.world = buildWorld(this);
 
-    /* ---------- sky ---------- */
-    g.fillGradientStyle(C.skyTop, C.skyTop, C.skyLow, C.skyLow, 1);
-    g.fillRect(0, 0, W, 260);
-    g.fillStyle(0xffffff, 0.9); g.fillCircle(180, 42, 22);
-    g.fillStyle(0xffffff, 0.9); g.fillCircle(206, 50, 26);
-    g.fillStyle(0xffffff, 0.9); g.fillCircle(236, 42, 20);
+    /* ---------- ground: one baked pixel texture ---------- */
+    this.add.image(0, 0, this.world.groundKey)
+      .setOrigin(0, 0).setScale(SCALE).setDepth(-1000);
 
-    /* ---------- distant KL skyline (baseline 170) ---------- */
-    g.fillStyle(C.towerLight, 0.85);
-    for (let i = 0; i < 14; i++) {
-      const bw = 42 + (i % 3) * 14;
-      const bh = 58 + ((i * 37) % 78);
-      g.fillRect(i * 72 - 10, 170 - bh, bw, bh);
-    }
-    g.fillStyle(C.tower, 0.5);
-    for (let i = 0; i < 14; i++) {
-      const bw = 42 + (i % 3) * 14;
-      const bh = 58 + ((i * 37) % 78);
-      for (let wy = 170 - bh + 12; wy < 162; wy += 16) g.fillRect(i * 72 - 4, wy, bw - 8, 4);
-    }
+    /* ---------- props, depth-sorted by their base line ---------- */
+    for (const prop of PROPS) {
+      const x = prop.x * TILE * SCALE;
+      const y = prop.y * TILE * SCALE;
+      const key = propTextureKey(prop.kind);
+      const img = this.add.image(x, y, key)
+        .setOrigin(0.5, 1).setScale(SCALE).setDepth(y);
+      if (prop.flip) img.setFlipX(true);
 
-    // Merdeka 118
-    g.fillStyle(0x6f97a8, 0.95);
-    g.fillTriangle(540, 38, 522, 170, 578, 170);
-    g.fillRect(545, 24, 6, 18);
-    // Petronas Twin Towers (stepped shafts + spires + skybridge)
-    for (const tx of [186, 242]) {
-      g.fillStyle(0x6f97a8, 0.98);
-      g.fillRect(tx, 72, 22, 98);
-      g.fillRect(tx + 4, 52, 14, 22);
-      g.fillTriangle(tx + 11, 28, tx + 3, 52, tx + 19, 52);
-      g.fillRect(tx + 10, 14, 2, 16);
-      g.fillStyle(0xcfe4e4, 0.85);
-      for (let y = 80; y < 164; y += 9) g.fillRect(tx + 2, y, 18, 2);
-      g.fillStyle(0x8fb4c0, 0.9);
-      for (let y = 76; y < 168; y += 9) g.fillRect(tx + 8, y, 6, 3);
-    }
-    g.fillStyle(0x5f8b9d, 1); g.fillRect(208, 118, 34, 5);
-    // KL Tower (shaft, bulb, crown ring, antenna)
-    g.fillStyle(0x6f97a8, 0.98);
-    g.fillRect(788, 118, 12, 52);
-    g.fillCircle(794, 108, 17);
-    g.fillRect(784, 96, 20, 5);
-    g.fillRect(792, 52, 3, 46);
-    g.fillStyle(0xcfe4e4, 0.8); g.fillRect(778, 106, 32, 3);
-    // Exchange 106 crown
-    g.fillStyle(0x6f97a8, 0.9);
-    g.fillTriangle(654, 48, 636, 170, 672, 170);
-
-    /* ---------- elevated LRT viaduct ---------- */
-    g.fillStyle(0xd9d2c2, 1);
-    for (const px of [70, 230, 390, 550, 710, 870]) g.fillRect(px, 194, 24, 60);
-    g.fillStyle(0xcfc7b6, 1); g.fillRect(0, 170, W, 24);
-    g.fillStyle(0xbdb5a3, 1); g.fillRect(0, 170, W, 4);
-    g.fillStyle(0xa89f8d, 1); g.fillRect(0, 188, W, 3);
-
-    /* ---------- low shophouses (tops under the viaduct) ---------- */
-    this.drawHome(g, DOORS[0].x);
-    this.drawCafe(g, DOORS[1].x);
-    this.drawStation(g, DOORS[2].x);
-
-    /* ---------- street ---------- */
-    g.fillStyle(C.walk, 1); g.fillRect(0, 342, W, 100);
-    g.fillStyle(C.tile, 1);
-    for (let x = 0; x < W; x += 56) g.fillRect(x, 342, 2, 100);
-    for (let y = 360; y < 440; y += 34) g.fillRect(0, y, W, 1);
-    g.fillStyle(C.curb, 1); g.fillRect(0, 440, W, 10);
-    g.fillStyle(C.road, 1); g.fillRect(0, 450, W, 106);
-    g.fillStyle(C.roadLine, 0.9);
-    for (let x = 12; x < W; x += 84) g.fillRect(x, 498, 44, 5);
-    // zebra crossing by the station
-    g.fillStyle(C.roadLine, 0.85);
-    for (let i = 0; i < 6; i++) g.fillRect(500 + i * 16, 456, 9, 94);
-    g.fillStyle(C.lower, 1); g.fillRect(0, 556, W, 44);
-
-    /* ---------- greenery & street props ---------- */
-    for (const px of [60, 300, 468, 668, 924]) this.palm(g, px);
-    for (const lx of [204, 470, 636]) {
-      g.fillStyle(C.teal, 1); g.fillRect(lx - 2, 252, 4, 92);
-      g.fillStyle(C.gold, 1); g.fillCircle(lx, 250, 7);
-      g.fillStyle(C.gold, 0.2); g.fillCircle(lx, 250, 20);
-    }
-    // satay stall on the lower walk
-    g.fillStyle(0xf7efe2, 1); g.fillRect(830, 566, 90, 30);
-    g.fillStyle(C.orange, 1); g.fillRect(820, 552, 110, 10);
-    g.fillStyle(0xffffff, 1);
-    for (let i = 0; i < 5; i++) g.fillRect(824 + i * 22, 552, 10, 10);
-    // planters with flowers
-    for (const fx of [92, 420, 932]) {
-      g.fillStyle(0xb98a66, 1); g.fillRect(fx - 22, 574, 44, 18);
-      g.fillStyle(C.green, 1); g.fillCircle(fx - 10, 570, 9);
-      g.fillStyle(C.green2, 1); g.fillCircle(fx + 8, 568, 10);
-      g.fillStyle(0xf29ec4, 1);
-      g.fillCircle(fx - 14, 562, 3); g.fillCircle(fx + 4, 558, 3); g.fillCircle(fx + 14, 566, 3);
+      if (SHADOWED.has(prop.kind)) {
+        const src = this.textures.get(key).getSourceImage() as HTMLImageElement;
+        const w = Math.min(src.width * SCALE * 0.72, 420);
+        this.add.image(x, y - 2, this.world.shadowKey)
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(w, Math.max(12, w * 0.28))
+          .setDepth(y - 2)
+          .setAlpha(prop.kind === "cottage" || prop.kind === "cafe" ? 0.75 : 0.9);
+      }
     }
 
-    /* ---------- office tower (own layer, in front of the rail) ---------- */
-    const og = this.add.graphics().setDepth(4);
-    this.drawOffice(og, DOORS[3].x);
-
-    /* ---------- signs ---------- */
-    this.sign(140, 262, "HOME", C.navy);
-    this.sign(360, 262, "COFFEE SHOP", C.red);
-    this.sign(580, 262, "LRT STATION", C.teal);
-    this.sign(800, 262, "ABC TOWER", C.gold2);
-
-    this.train = this.makeTrain();
-    this.clouds = [
-      this.add.ellipse(420, 28, 96, 24, 0xffffff, 0.7),
-      this.add.ellipse(700, 52, 120, 26, 0xffffff, 0.6),
-      this.add.ellipse(60, 64, 80, 20, 0xffffff, 0.5)
-    ];
-
+    /* ---------- pilot ---------- */
+    this.shadow = this.add.image(this.base.x, this.base.y - 2, this.world.shadowKey)
+      .setOrigin(0.5, 0.5).setDisplaySize(48, 15).setDepth(this.base.y - 2);
     this.player = sizeSprite(
-      this.add.image(commuting ? 140 : 800, this.baseY, charTextureKey(current.characterId)), 66
-    ).setOrigin(0.5, 1).setDepth(10);
+      this.add.image(this.base.x, this.base.y, charTextureKey(current.characterId)), PLAYER_H
+    ).setOrigin(0.5, 1).setDepth(this.base.y);
 
-    // the morning objective: a bouncing marker over the tower entrance
-    if (commuting) {
-      const arrow = this.add.triangle(DOORS[3].x, 246, 0, 22, 18, 0, 36, 22, C.gold).setDepth(6);
-      this.tweens.add({ targets: arrow, y: 262, duration: 650, yoyo: true, repeat: -1, ease: "sine.inOut" });
-      this.add.text(DOORS[3].x, 222, "CLOCK IN", {
-        fontFamily: '"Pricedown", "Trebuchet MS", sans-serif', fontSize: "13px",
-        color: "#16324a", backgroundColor: "#f7e3b4", padding: { x: 7, y: 2 }
-      }).setOrigin(0.5).setDepth(6);
+    /* ---------- camera rides the meadow ---------- */
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, WORLD_W, WORLD_H);
+    cam.startFollow(this.player, true, 0.16, 0.16, 0, 52);
+    cam.setRoundPixels(true);
+    cam.fadeIn(240, 18, 34, 20);
+
+    /* ---------- ambient: pond sparkle ---------- */
+    for (let i = 0; i < 7; i++) {
+      const sx = (27.6 + (i * 1.62) % 12) * TILE * SCALE;
+      const sy = (26.6 + ((i * 2.1) % 5.2)) * TILE * SCALE;
+      const spark = this.add.rectangle(sx, sy, 2, 2, 0xd9f0f4, 0.85).setDepth(-900);
+      this.tweens.add({
+        targets: spark, alpha: { from: 0.1, to: 0.9 },
+        duration: 900 + i * 180, yoyo: true, repeat: -1, delay: i * 220
+      });
     }
 
-    this.walker = new Walker(this);
+    /* ---------- input ---------- */
+    this.walker = new Walker(this, "top");
     this.input.keyboard!.on("keydown-E", () => this.enter());
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       this.target = {
-        x: Phaser.Math.Clamp(p.worldX, 30, W - 30),
-        y: Phaser.Math.Clamp(p.worldY, 352, 432)
+        x: Phaser.Math.Clamp(p.worldX, 8, WORLD_W - 8),
+        y: Phaser.Math.Clamp(p.worldY, 8, WORLD_H - 8)
       };
     });
 
     document.getElementById("hud-action")!.onclick = () => this.enter();
     document.getElementById("hud")!.classList.add("on");
-    setGoal(commuting ? "GOAL · Walk to ABC TOWER →" : "GOAL · Clock out at home 🏠");
+    setGoal(commuting ? "GOAL · Walk north to ABC TOWER" : "GOAL · Clock out at home 🏠");
     toast(commuting
-      ? "Hold W / ↑ to walk · tap it to brisk-walk · hold 1 or / to run to the tower."
-      : "Back on Maple Street — the tower is right, home is left.",
-      3400);
-    this.cameras.main.fadeIn(200, 8, 28, 36);
+      ? "WASD / arrows to walk · tap to hurry · hold Shift to run · E at a door."
+      : "Back in Maple Meadow — home is south, ABC Tower is north.",
+      3600);
     this.updateHud(true);
-  }
-
-  /* ------------------------------------------------------------------ */
-
-  private drawHome(g: Phaser.GameObjects.Graphics, x: number) {
-    const bx = x - 100;
-    g.fillStyle(C.cream, 1); g.fillRect(bx, 246, 200, 96);
-    g.fillStyle(0x8a4d3f, 1); g.fillRect(bx, 246, 200, 6);
-    // signboard band
-    g.fillStyle(C.navy, 1); g.fillRect(bx + 26, 252, 148, 22);
-    g.fillStyle(C.gold, 1); g.fillRect(bx + 26, 252, 148, 2);
-    // green-striped awning
-    for (let i = 0; i < 7; i++) {
-      g.fillStyle(i % 2 ? 0xffffff : C.green, 1);
-      g.fillRect(bx + 18 + i * 24, 278, 24, 12);
-    }
-    g.fillStyle(0x6b4a2f, 1); g.fillRect(x - 24, 296, 48, 46);
-    g.fillStyle(C.glass, 1); g.fillRect(x - 16, 304, 32, 28);
-    g.fillStyle(C.glass, 1); g.fillRect(bx + 24, 300, 34, 26);
-    g.fillStyle(C.glass, 1); g.fillRect(bx + 142, 300, 34, 26);
-  }
-
-  private drawCafe(g: Phaser.GameObjects.Graphics, x: number) {
-    const bx = x - 100;
-    g.fillStyle(C.cream2, 1); g.fillRect(bx, 246, 200, 96);
-    g.fillStyle(0x4e7d5b, 1); g.fillRect(bx, 246, 200, 6);
-    g.fillStyle(C.red, 1); g.fillRect(bx + 26, 252, 148, 22);
-    g.fillStyle(0xffffff, 1); g.fillRect(bx + 26, 252, 148, 2);
-    // red/white awning
-    for (let i = 0; i < 7; i++) {
-      g.fillStyle(i % 2 ? 0xffffff : C.red, 1);
-      g.fillRect(bx + 18 + i * 24, 278, 24, 12);
-    }
-    g.fillStyle(0x6b5138, 1); g.fillRect(x - 24, 296, 48, 46);
-    g.fillStyle(C.glass, 1); g.fillRect(x - 16, 304, 32, 28);
-    // tables on the walk
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(bx + 32, 392, 13); g.fillCircle(bx + 168, 392, 13);
-    g.fillStyle(0x9c7b5f, 1); g.fillRect(bx + 30, 400, 4, 18); g.fillRect(bx + 166, 400, 4, 18);
-    g.fillStyle(C.red, 1); g.fillCircle(bx + 32, 388, 4); g.fillCircle(bx + 168, 388, 4);
-  }
-
-  private drawStation(g: Phaser.GameObjects.Graphics, x: number) {
-    const bx = x - 100;
-    g.fillStyle(0xe8f4f2, 1); g.fillRect(bx, 246, 200, 96);
-    g.fillStyle(C.teal, 1); g.fillRect(bx + 26, 252, 148, 22);
-    g.fillStyle(0xffffff, 1); g.fillRect(bx + 26, 252, 148, 2);
-    g.fillStyle(C.glass, 1); g.fillRect(bx + 24, 280, 152, 16);
-    g.lineStyle(2, 0x8fb3b1, 1); g.strokeRect(bx + 24, 280, 152, 16);
-    g.fillStyle(0x2b3038, 1); g.fillRect(x - 24, 300, 48, 42);
-    g.fillStyle(C.gold, 1); g.fillRect(x - 24, 296, 48, 4);
-  }
-
-  private drawOffice(g: Phaser.GameObjects.Graphics, x: number) {
-    const bx = x - 90;
-    g.fillStyle(C.glass, 1); g.fillRect(bx, 62, 180, 280);
-    g.fillStyle(C.glassLine, 1);
-    for (let wy = 70; wy < 336; wy += 16) g.fillRect(bx, wy, 180, 2);
-    for (let wx = bx + 20; wx < bx + 180; wx += 28) g.fillRect(wx, 62, 2, 280);
-    g.fillStyle(0xffffff, 0.55);
-    for (let r = 0; r < 9; r++) for (let c = 0; c < 4; c++) {
-      if ((r + c) % 3 === 0) g.fillRect(bx + 8 + c * 42, 74 + r * 24, 30, 13);
-    }
-    // gold entrance
-    g.fillStyle(C.gold, 1); g.fillRect(x - 34, 288, 68, 54);
-    g.fillStyle(C.navy, 1); g.fillRect(x - 26, 294, 52, 48);
-    g.fillStyle(C.gold, 1); g.fillRect(x - 2, 294, 4, 48);
-  }
-
-  private sign(x: number, y: number, text: string, color: number) {
-    this.add.text(x, y, text, {
-      fontFamily: '"Pricedown", "Trebuchet MS", sans-serif',
-      fontSize: "12px", color: "#ffffff",
-      backgroundColor: "#" + color.toString(16).padStart(6, "0"),
-      padding: { x: 6, y: 2 }
-    }).setOrigin(0.5).setDepth(5);
-  }
-
-  private palm(g: Phaser.GameObjects.Graphics, x: number) {
-    g.fillStyle(C.trunk, 1);
-    g.fillRect(x - 3, 296, 6, 50);
-    g.fillStyle(C.green, 1);
-    g.fillTriangle(x, 296, x - 34, 282, x - 8, 292);
-    g.fillTriangle(x, 296, x + 34, 282, x + 8, 292);
-    g.fillStyle(C.green2, 1);
-    g.fillTriangle(x, 294, x - 24, 264, x - 2, 288);
-    g.fillTriangle(x, 294, x + 24, 264, x + 2, 288);
-    g.fillStyle(0x3f8a45, 1);
-    g.fillTriangle(x, 292, x - 5, 258, x + 7, 286);
-    g.fillStyle(0x8d6b4a, 1); g.fillCircle(x, 296, 4);
-  }
-
-  private makeTrain() {
-    const body = this.add.rectangle(0, 0, 150, 28, 0xf4f6f5).setStrokeStyle(2, 0xa9b3b3);
-    const stripe = this.add.rectangle(0, 4, 150, 6, C.red);
-    const stripe2 = this.add.rectangle(0, 10, 150, 3, 0x3d6e8f);
-    const win = this.add.rectangle(0, -4, 118, 10, 0x3d6e8f);
-    const lights = this.add.rectangle(62, 2, 12, 8, 0xfff2b0);
-    const cab = this.add.rectangle(-70, 0, 10, 24, C.navy);
-    const c = this.add.container(W + 180, 156, [body, stripe, stripe2, win, lights, cab]).setDepth(3);
-    return c;
+    this.drawMini(0);
   }
 
   /* ------------------------------------------------------------------ */
@@ -309,7 +137,7 @@ export class CityScene extends Phaser.Scene {
     if (id === "home") {
       if (day.stage === "commute") {
         audio.deny();
-        toast("You haven't clocked in yet — ABC Tower is to the right.");
+        toast("You haven't clocked in yet — ABC Tower is north.");
         return;
       }
       audio.click();
@@ -317,8 +145,8 @@ export class CityScene extends Phaser.Scene {
       return;
     }
     audio.deny();
-    if (id === "cafe") toast("The office pantry has free coffee — keep walking.");
-    else if (id === "station") toast("No LRT today. The tower is a short walk to the right.");
+    if (id === "cafe") toast("The office pantry has free coffee — keep walking north.");
+    else if (id === "station") toast("No LRT today. ABC Tower is a short walk north.");
   }
 
   private go(key: string) {
@@ -326,8 +154,18 @@ export class CityScene extends Phaser.Scene {
     this.walker.reset();
     setSpeed(WALK_LABEL.idle);
     document.getElementById("hud-action")!.classList.remove("on");
-    this.cameras.main.fadeOut(180, 8, 28, 36);
+    this.cameras.main.fadeOut(180, 18, 34, 20);
     this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start(key));
+  }
+
+  private nearLabel(z: ZoneDef): string {
+    if (z.id === "office") {
+      return day.stage === "commute" ? "🏢 Clock in" : "🏢 Enter the tower";
+    }
+    if (z.id === "home") {
+      return day.stage === "commute" ? "🏠 Clock in first" : "🏠 Clock out";
+    }
+    return z.label;
   }
 
   update(time: number, delta: number) {
@@ -336,53 +174,72 @@ export class CityScene extends Phaser.Scene {
 
     const walk = this.walker.read(dt);
     let vx = walk.vx, vy = walk.vy, mode = walk.mode, speed = walk.speed;
+    let moving = walk.moving;
 
-    if (walk.moving) this.target = null;
+    // click-to-walk, the phone-friendly fallback
+    if (moving) this.target = null;
     else if (this.target) {
-      const dx = this.target.x - this.player.x, dy = this.target.y - this.baseY;
+      const dx = this.target.x - this.base.x;
+      const dy = this.target.y - this.base.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < 4) this.target = null;
-      else { vx = dx / dist; vy = dy / dist; speed = 175; mode = "walk"; }
+      if (dist < 5) this.target = null;
+      else { vx = dx / dist; vy = dy / dist; speed = 168; mode = "walk"; moving = true; }
     }
 
-    const moving = !!(vx || vy);
     if (moving) {
-      const len = Math.hypot(vx, vy) || 1;
-      this.player.x = Phaser.Math.Clamp(this.player.x + (vx / len) * speed * dt, 30, W - 30);
-      this.baseY = Phaser.Math.Clamp(this.baseY + (vy / len) * speed * dt, 352, 432);
+      // axis-separated: brushing a wall slides along it instead of stopping dead
+      const nx = Phaser.Math.Clamp(this.base.x + vx * speed * dt, 10, WORLD_W - 10);
+      const ny = Phaser.Math.Clamp(this.base.y + vy * speed * dt, 10, WORLD_H - 10);
+      const wasX = this.base.x, wasY = this.base.y;
+      if (!blockedAt(this.world, nx, this.base.y)) this.base.x = nx;
+      if (!blockedAt(this.world, this.base.x, ny)) this.base.y = ny;
       if (vx) this.facing = vx > 0 ? 1 : -1;
-    }
+      else if (walk.dir === "left") this.facing = -1;
+      else if (walk.dir === "right") this.facing = 1;
+
+      // a tap that cannot get where it wanted gives up instead of grinding
+      // against a wall — the player can then just tap somewhere else
+      if (this.target) {
+        const moved = this.base.x !== wasX || this.base.y !== wasY;
+        this.stuck = moved ? 0 : this.stuck + dt;
+        if (this.stuck > 0.35) { this.target = null; this.stuck = 0; }
+      }
+    } else this.stuck = 0;
+
+    // a two-frame step bob: feet stay planted, the body lifts
+    const rate = mode === "run" ? 70 : mode === "brisk" ? 95 : 138;
+    const lift = moving ? Math.abs(Math.sin(time / rate)) * (mode === "run" ? 3.4 : 2.2) : 0;
     this.player.setFlipX(this.facing < 0);
-    const bob = mode === "run" ? 45 : mode === "brisk" ? 58 : 70;
-    this.player.y = this.baseY + (moving ? Math.sin(time / bob) * 1.5 : 0);
+    this.player.setPosition(this.base.x, this.base.y - lift);
+    this.player.setDepth(this.base.y);
+
+    this.shadow.setPosition(this.base.x, this.base.y - 3);
+    this.shadow.setDisplaySize(48 - lift * 2, 15 - lift * 0.8);
+    this.shadow.setDepth(this.base.y - 2);
+
     setSpeed(WALK_LABEL[mode]);
 
-    // LRT glides past
-    this.train.x -= 42 * dt;
-    if (this.train.x < -200) this.train.x = W + 200;
-    for (const cl of this.clouds) {
-      cl.x += 5 * dt;
-      if (cl.x > W + 80) cl.x = -80;
+    // proximity doors
+    let best: ZoneDef | null = null;
+    let bestD = Infinity;
+    for (const z of ZONES) {
+      const d = Phaser.Math.Distance.Between(
+        this.base.x, this.base.y, z.x * TILE * SCALE, z.y * TILE * SCALE
+      );
+      if (d < z.r && d < bestD) { best = z; bestD = d; }
     }
-
-    this.near = DOORS.find(d => Math.abs(d.x - this.player.x) < d.r) ?? null;
+    this.near = best;
     const action = document.getElementById("hud-action")!;
-    if (this.near) { action.textContent = this.nearLabel() + "  (E)"; action.classList.add("on"); }
-    else action.classList.remove("on");
+    if (best) {
+      action.textContent = this.nearLabel(best) + "  (E)";
+      action.classList.add("on");
+    } else action.classList.remove("on");
 
     this.updateHud(false);
-    this.drawMinimap();
-  }
-
-  private nearLabel(): string {
-    const d = this.near!;
-    if (d.id === "office") return day.stage === "commute" ? "🏢 Clock in at ABC TOWER" : "🏢 Back into ABC TOWER";
-    if (d.id === "home") return day.stage === "commute" ? "🏠 Home — clock in first" : "🏠 Go home — clock out";
-    return d.label;
+    if (time - this.lastMini > 110) this.drawMini(time);
   }
 
   private updateHud(force: boolean) {
-    // real-time world clock drives the HUD
     const clock = fmtTime(new Date(), true);
     if (force || clock !== this.lastClock) {
       this.lastClock = clock;
@@ -390,27 +247,17 @@ export class CityScene extends Phaser.Scene {
     }
     document.getElementById("hud-money")!.textContent = "$" + String(current!.money).padStart(8, "0");
     document.getElementById("hud-energy")!.textContent = "♥ " + Math.round(day.energy);
-    document.getElementById("hud-left")!.textContent = `${fmtDate()} · MAPLE STREET`;
+    document.getElementById("hud-left")!.textContent = `${fmtDate()} · MAPLE MEADOW`;
   }
 
-  private drawMinimap() {
+  private drawMini(time: number) {
     const c = document.getElementById("minimap") as HTMLCanvasElement;
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, c.width, c.height);
-    ctx.fillStyle = "#cfe0dc";
-    ctx.fillRect(8, 22, c.width - 16, 6);
-    const colors: Record<string, string> = { home: "#c9922f", cafe: "#d6544a", station: "#2e8f88", office: "#16324a" };
-    for (const d of DOORS) {
-      ctx.fillStyle = colors[d.id];
-      ctx.fillRect(8 + (d.x / W) * (c.width - 16) - 2, 16, 5, 14);
-    }
-    ctx.fillStyle = "#e3b45c";
-    ctx.beginPath();
-    ctx.arc(8 + (this.player.x / W) * (c.width - 16), 25, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#16324a";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    this.lastMini = time;
+    const cam = this.cameras.main;
+    drawMinimap(ctx, c.width, c.height, this.world,
+      { x: this.base.x, y: this.base.y },
+      { x: cam.worldView.x, y: cam.worldView.y, w: cam.worldView.width, h: cam.worldView.height });
   }
 }

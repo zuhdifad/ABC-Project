@@ -13,8 +13,8 @@ class BootScene extends Phaser.Scene {
   constructor() { super("Boot"); }
 
   preload() {
-    // in-game only ever shows the derived street sprite, never the 1024px portrait
-    for (const c of CHARACTERS) this.load.image(charTextureKey(c.id), c.sprite);
+    // in-game only ever shows the pixel sprite, never the lobby portrait
+    for (const c of CHARACTERS) this.load.image(charTextureKey(c.id), c.pixel);
   }
 }
 
@@ -24,7 +24,11 @@ function boot() {
     parent: "game",
     width: 960,
     height: 600,
-    backgroundColor: "#eaf4f1",
+    backgroundColor: "#6fae4a",
+    // the whole village is baked pixel art: nearest-neighbour filtering and
+    // whole-pixel camera positions, or the 16 px tiles shimmer while walking
+    pixelArt: true,
+    roundPixels: true,
     // FIT: the whole 960x600 scene stays visible and scales with the window;
     // the side gutters are painted to continue the scene's colour bands.
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
@@ -34,6 +38,9 @@ function boot() {
   initFlow(game);
   initActivity(game);
   bindMuteButtons();
+
+  // dev-only handle, used by the screenshot harness to read the walk state
+  if (import.meta.env.DEV) (window as any).__game = game;
 }
 
 // Wait for Pricedown so Phaser canvas text renders in the GTA-III face,

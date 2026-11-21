@@ -6,9 +6,18 @@ Drop zone : assets-src/characters/<Name>-char.{jpeg,jpg,png,webp}
             (any flat-backdrop full-body portrait; the filename becomes the id)
 
 Outputs   : client/public/chars/<id>.webp         big showcase art (1024 px tall)
-            client/public/chars/<id>-sprite.png   in-game character (128 px tall)
+            client/public/chars/<id>-sprite.png   select-screen figure (128 px tall)
             client/public/chars/<id>-face.png     filmstrip bust tile (220x264)
+            client/public/chars/<id>-pixel.png    in-game pixel sprite (100 px tall)
             client/public/chars/index.json        id -> sizes, for tooling
+
+Only `-pixel.png` is transformed. The lobby art (webp / sprite / face) stays
+the clean photo cutout it has always been — the pixel transform happens to the
+character you actually walk around with, not to the character you pick.
+
+The pixel sprite is the cutout shrunk onto a hard grid, snapped to a small
+adaptive palette (no dithering), alpha binarised (no soft edges) and scaled
+back up with nearest neighbours — the same transform for every character.
 
 The flat studio backdrop is flood-filled away from the borders only, so white
 shirts *inside* the silhouette survive. Edges are de-fringed against the
@@ -31,6 +40,15 @@ OUT = os.path.join(ROOT, "client", "public", "chars")
 BIG_H = 1024
 SPRITE_H = 128
 FACE_W, FACE_H = 220, 264
+
+# Pixel-art grid for the in-game sprite, in art pixels. One grid cell becomes
+# an integer block of PNG pixels, so the runtime never resamples it.
+PIXEL_GRID, PIXEL_SCALE, PIXEL_COLORS = 48, 2, 26
+PIXEL_GAIN = 1.35                     # chibi widening: photoreal people are too
+                                      # narrow to read as a 100 px game sprite
+PIXEL_H = PIXEL_GRID * PIXEL_SCALE
+OUTLINE = (24, 18, 15)                # one-pixel silhouette border
+ALPHA_CUT = 100                       # alpha below this is not a pixel at all
 
 BG_TOL = 72          # colour distance still considered backdrop / floor shadow
 BG_CHROMA = 14       # backdrop is neutral grey; clothing and skin are not
@@ -160,9 +178,46 @@ def bust(img):
     return tile.resize((FACE_W, FACE_H), Image.LANCZOS)
 
 
+def pixel_grid(art, grid_h, colors, width_gain=1.0):
+    """Resample a cutout onto a hard pixel grid with a cut-down palette.
+
+    The resize is premultiplied, so the transparent backdrop cannot drag a
+    grey fringe into the suit. Alpha is then binarised: a pixel either exists
+    or it does not, which is the whole point of the look.
+    """
+    box = art.getchannel("A").point(lambda v: 255 if v > 24 else 0).getbbox()
+    if box:
+        art = art.crop(box)
+    w = max(1, round(art.width * grid_h / art.height * width_gain))
+    small = art.convert("RGBa").resize((w, grid_h), Image.LANCZOS).convert("RGBA")
+    r, g, b, a = small.split()
+    a = a.point(lambda v: 255 if v >= ALPHA_CUT else 0)
+    q = Image.merge("RGB", (r, g, b)).quantize(
+        colors=colors, method=Image.MEDIANCUT, dither=Image.NONE).convert("RGB")
+    return Image.merge("RGBA", (*q.split(), a))
+
+
+def outline(grid):
+    """One art pixel of dark border around the silhouette, grown outwards."""
+    mask = np.asarray(grid.getchannel("A")) > 0
+    ring = np.pad(dilate(mask, 1) & ~mask, 1, mode="constant", constant_values=False)
+    out = Image.new("RGBA", (grid.width + 2, grid.height + 2), (0, 0, 0, 0))
+    out.paste(grid, (1, 1))
+    layer = np.zeros((ring.shape[0], ring.shape[1], 4), dtype=np.uint8)
+    layer[ring] = (*OUTLINE, 255)
+    out.alpha_composite(Image.fromarray(layer, "RGBA"))
+    return out
+
+
 def scale_to_height(img, height):
     w = max(1, round(img.width * height / img.height))
     return img.resize((w, height), Image.LANCZOS)
+
+
+def pixel_art(art, grid_h, scale, colors, width_gain=1.0):
+    """Portrait -> outlined pixel grid -> nearest-neighbour blocks."""
+    grid = outline(pixel_grid(art, grid_h, colors, width_gain))
+    return grid.resize((grid.width * scale, grid.height * scale), Image.NEAREST)
 
 
 def slug(name):
@@ -193,13 +248,19 @@ def main():
         big = scale_to_height(art, BIG_H)
         sprite = scale_to_height(art, SPRITE_H)
         face = bust(art)
+        pixel = pixel_art(art, PIXEL_GRID, PIXEL_SCALE, PIXEL_COLORS, PIXEL_GAIN)
         big.save(os.path.join(OUT, f"{cid}.webp"), "WEBP", quality=90, method=6)
         sprite.save(os.path.join(OUT, f"{cid}-sprite.png"), "PNG", optimize=True)
         face.save(os.path.join(OUT, f"{cid}-face.png"), "PNG", optimize=True)
+        pixel.save(os.path.join(OUT, f"{cid}-pixel.png"), "PNG", optimize=True)
         index[cid] = {"big": [big.width, big.height],
                       "sprite": [sprite.width, sprite.height],
-                      "face": [FACE_W, FACE_H]}
-        print(f"{cid:10s} big {big.width}x{big.height}  sprite {sprite.width}x{sprite.height}")
+                      "face": [FACE_W, FACE_H],
+                      "pixel": [pixel.width, pixel.height],
+                      "grid": PIXEL_GRID}
+        print(f"{cid:10s} big {big.width}x{big.height}  "
+              f"sprite {sprite.width}x{sprite.height}  "
+              f"pixel {pixel.width}x{pixel.height}")
     with open(os.path.join(OUT, "index.json"), "w") as fh:
         json.dump(index, fh, indent=2)
     print(f"\n{len(files)} characters -> {OUT}")

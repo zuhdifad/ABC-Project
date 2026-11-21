@@ -5,6 +5,7 @@ import {
 } from "./profile";
 import { CHARACTERS, charIndex, charMods, starRating } from "./characters";
 import { audio, syncMuteButtons } from "./audio";
+import { bindTouchPad } from "./touchpad";
 
 let game: Phaser.Game;
 let draft: Profile | null = null;
@@ -18,6 +19,7 @@ const $ = (id: string) => document.getElementById(id)!;
 
 export function initFlow(g: Phaser.Game) {
   game = g;
+  bindTouchPad();
   buildCarousel();
   renderSelect();
   tickTitleClock();

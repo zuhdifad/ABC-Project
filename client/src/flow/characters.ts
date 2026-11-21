@@ -4,13 +4,17 @@ import type Phaser from "phaser";
  * The commuter roster.
  *
  * Art contract: every character has ONE source portrait in
- * `assets-src/characters/`. `tools/build_characters.py` derives the three sizes
- * used by the game from it, so the big selection art and the tiny street sprite
- * can never drift apart:
+ * `assets-src/characters/`. `tools/build_characters.py` derives every size
+ * used by the game from it, so the lobby art and the tiny street sprite can
+ * never drift apart:
  *
  *   chars/<id>.webp        -> selection showcase (1024 px tall)
- *   chars/<id>-sprite.png  -> in-game character   (128 px tall)
+ *   chars/<id>-sprite.png  -> select-screen figure (128 px tall)
  *   chars/<id>-face.png    -> filmstrip bust tile (220x264)
+ *   chars/<id>-pixel.png   -> in-game pixel sprite (100 px tall)
+ *
+ * Only the in-game sprite is pixel art. The select screen keeps the clean
+ * photo cutouts; the transform belongs to the character you walk around.
  *
  * Stats are not decoration: energy sets the shift's starting stamina, focus
  * scales laptop payouts, and coffee need (read off the physique) drives how
@@ -49,12 +53,15 @@ export interface CharacterDef {
   img: string;
   sprite: string;
   face: string;
+  /** pixel-art sprite, only ever used inside the game scene */
+  pixel: string;
 }
 
 const art = (id: string) => ({
   img: `/chars/${id}.webp`,
   sprite: `/chars/${id}-sprite.png`,
-  face: `/chars/${id}-face.png`
+  face: `/chars/${id}-face.png`,
+  pixel: `/chars/${id}-pixel.png`
 });
 
 export const CHARACTERS: CharacterDef[] = [
