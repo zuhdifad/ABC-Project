@@ -42,7 +42,7 @@ export class RoomScene extends Phaser.Scene {
   private target: { x: number; y: number } | null = null;
   private lastClock = "";
   private lastWorkAt = 0;
-  private friendId = "danial";
+  private friendId!: string;
   private friendSprite!: Phaser.GameObjects.Image;
   private chugTarget = false;
 
