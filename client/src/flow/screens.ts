@@ -113,13 +113,13 @@ export function show(id: string) {
   syncMuteButtons();
 }
 
-export function enterCity() {
+export function enterGame() {
   $("flow").classList.remove("on");
   $("hud").classList.add("on");
   document.body.classList.remove("on-title");
   document.body.classList.remove("on-login");
   document.body.classList.add("in-game");
-  game.scene.start("City");
+  game.scene.start("Place");
 }
 
 export function toast(msg: string, ms = 2600) {
@@ -144,7 +144,7 @@ export function setSpeed(text: string) {
 }
 
 export function clockOut() {
-  for (const key of ["City", "Lobby", "Room"]) {
+  for (const key of ["Place", "Race"]) {
     if (game.scene.isActive(key) || game.scene.isPaused(key)) game.scene.stop(key);
   }
   $("hud").classList.remove("on");
@@ -290,5 +290,5 @@ function confirmSelect() {
 function startShift() {
   setDay(newDay());
   day.energy = charMods(current?.characterId).startEnergy;
-  enterCity();
+  enterGame();
 }

@@ -59,7 +59,7 @@ export class RaceScene extends Phaser.Scene {
     const state: any = this.room.state;
     this.theme = THEMES[state.gameType] ?? THEMES.coffee;
     document.body.classList.add("scene-race");
-    document.body.classList.remove("scene-city", "scene-office", "scene-room");
+    document.body.classList.remove("scene-station");
 
     // header sits below the top edge so it never crowds the HUD
     this.add.text(24, 62, this.theme.title,

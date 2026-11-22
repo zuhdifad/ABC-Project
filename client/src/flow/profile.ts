@@ -14,10 +14,7 @@ export interface DayState {
   log: LogEntry[];
   commuteDone: boolean;
   coffeeDone: boolean;
-  /** how far the morning routine has got */
-  stage: DayStage;
 }
-export type DayStage = "commute" | "office" | "room" | "seated";
 
 const KEY = "mashparty.profiles.v1";
 
@@ -55,11 +52,10 @@ export function newDay(): DayState {
   // groggy morning energy so the coffee run actually matters
   return {
     startedAt: Date.now(), energy: 70, earned: 0, log: [],
-    commuteDone: false, coffeeDone: false, stage: "commute"
+    commuteDone: false, coffeeDone: false
   };
 }
 export function setDay(d: DayState) {
-  if (!d.stage) d.stage = d.commuteDone ? "office" : "commute";
   day = d;
 }
 

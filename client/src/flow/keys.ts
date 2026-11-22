@@ -86,7 +86,6 @@ export const keys = {
   isDown(k: GameKey): boolean {
     return down.has(k);
   },
-
   /** called once per fresh press (auto-repeat ignored). Returns an unsubscribe. */
   onPress(k: GameKey, fn: () => void): () => void {
     let set = press.get(k);
@@ -94,7 +93,6 @@ export const keys = {
     set.add(fn);
     return () => set!.delete(fn);
   },
-
   /** any fresh press — the mash-race wants the whole keyboard */
   onAnyPress(fn: () => void): () => void {
     anyPress.add(fn);
@@ -118,3 +116,8 @@ export const keys = {
 
   reset
 };
+
+// dev handle: lets the screenshot harness assert what the keyboard layer sees
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as any).__keys = keys;
+}

@@ -10,3 +10,7 @@ dist/
 # local test artifacts
 screenshot_debug_*.png
 test-screenshots/
+verify_*.png
+
+# backup plates kept by the asset tools
+*.orig

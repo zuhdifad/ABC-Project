@@ -1,12 +1,11 @@
 import Phaser from "phaser";
 import { RaceScene } from "./scenes/RaceScene";
-import { CityScene } from "./scenes/CityScene";
-import { LobbyScene } from "./scenes/LobbyScene";
-import { RoomScene } from "./scenes/RoomScene";
+import { PlaceScene } from "./scenes/PlaceScene";
 import { initFlow } from "./flow/screens";
 import { initActivity } from "./menu";
 import { bindMuteButtons } from "./flow/audio";
 import { CHARACTERS, charTextureKey } from "./flow/characters";
+import { charWalkKey, ensureWalkAnims, registerWalkSheets } from "./flow/CharSprite";
 import { GAME_FONT } from "./flow/theme";
 
 class BootScene extends Phaser.Scene {
@@ -15,6 +14,22 @@ class BootScene extends Phaser.Scene {
   preload() {
     // in-game only ever shows the pixel sprite, never the lobby portrait
     for (const c of CHARACTERS) this.load.image(charTextureKey(c.id), c.pixel);
+    // placeholder walk sheets: the static art has no walking frames, so each
+    // character ships a generated 4-direction cycle (see tools/build_walk_sheets.py)
+    for (const c of CHARACTERS) {
+      this.load.image(charWalkKey(c.id), `/rigs/${c.id}-walk.png`);
+    }
+  }
+
+  create() {
+    // painted dioramas are scaled down smoothly; the pixel people stay crisp
+    for (const c of CHARACTERS) {
+      this.textures.get(charTextureKey(c.id))?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      this.textures.get(charWalkKey(c.id))?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    // build every walk/idle clip once, so any place scene can just play them
+    registerWalkSheets(CHARACTERS.map(c => c.id));
+    ensureWalkAnims(this);
   }
 }
 
@@ -24,15 +39,15 @@ function boot() {
     parent: "game",
     width: 960,
     height: 600,
-    backgroundColor: "#6fae4a",
-    // the whole village is baked pixel art: nearest-neighbour filtering and
-    // whole-pixel camera positions, or the 16 px tiles shimmer while walking
-    pixelArt: true,
+    backgroundColor: "#101312",
+    // fixed isometric dioramas: the painting is downscaled smoothly, the
+    // character sprites keep nearest-neighbour filtering (set in Boot)
+    pixelArt: false,
     roundPixels: true,
-    // FIT: the whole 960x600 scene stays visible and scales with the window;
-    // the side gutters are painted to continue the scene's colour bands.
+    // FIT: the whole 960x600 diorama stays visible and scales with the window;
+    // the side gutters continue the dark hall so there are no hard bars.
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [BootScene, CityScene, LobbyScene, RoomScene, RaceScene]
+    scene: [BootScene, PlaceScene, RaceScene]
   });
 
   initFlow(game);

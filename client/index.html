@@ -19,25 +19,15 @@
       background: var(--paper); color: var(--ink); overflow: hidden;
       font-family: "Trebuchet MS", system-ui, sans-serif;
     }
-    #game { width: 100vw; height: 100vh; height: 100dvh; background: #6fae4a; }
-    #game canvas { touch-action: none; image-rendering: pixelated; }
-    /* gutters next to the fitted canvas continue the lawn under the village */
-    body.scene-city #game {
+    #game { width: 100vw; height: 100vh; height: 100dvh; background: #0b0e0d; }
+    #game canvas { touch-action: none; }
+    /* gutters next to the fitted canvas continue the dark station hall */
+    body.scene-station #game {
       background: linear-gradient(180deg,
-        #4c8734 0%, #5e9c40 22%, #6fae4a 48%,
-        #77b64e 72%, #6aab47 88%, #528f37 100%);
+        #383b34 0%, #2b2e29 24%, #1d201c 52%,
+        #131614 76%, #08090a 100%);
     }
     body.scene-race #game { background: #eaf4f1; }
-    body.scene-office #game {
-      background: linear-gradient(180deg,
-        #f3ebdb 0%, #f3ebdb 60%, #e6f0eb 60%, #e6f0eb 65%,
-        #f7f2e6 65%, #f7f2e6 100%);
-    }
-    body.scene-room #game {
-      background: linear-gradient(180deg,
-        #f1e9d8 0%, #f1e9d8 60%, #e8f2ee 60%, #e8f2ee 65%,
-        #e3ebe4 65%, #e3ebe4 100%);
-    }
     body.scene-race #hud-goal, body.scene-race #hud-speed { display: none; }
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: var(--paper); }
@@ -568,9 +558,7 @@
       pointer-events: auto; touch-action: none; user-select: none;
       -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    body.in-game.scene-city #dpad,
-    body.in-game.scene-office #dpad,
-    body.in-game.scene-room #dpad { display: grid; }
+    body.in-game.scene-station #dpad { display: grid; }
     #dpad button {
       appearance: none; border: 2px solid #5a3a22; border-radius: 5px; cursor: pointer;
       background: linear-gradient(180deg, #f7dc9b, #e0b877 60%, #c9922f);
@@ -881,7 +869,7 @@
   </div>
 
   <div id="hud">
-    <div id="hud-left">MAPLE STREET</div>
+    <div id="hud-left">KL SENTRAL</div>
     <div id="hud-right">
       <div id="hud-clock">00:00:00</div>
       <div id="hud-money">$00000000</div>
@@ -910,7 +898,7 @@
       <path d="M3 3.5v4.5h4.5" />
     </svg>
     <b>ROTATE YOUR PHONE</b>
-    <span>The street plays best in landscape — turn your phone sideways and the city fills the screen.</span>
+    <span>The station plays best in landscape — turn your phone sideways and the hall fills the screen.</span>
   </div>
 
   <div id="activity" class="overlay">
@@ -925,7 +913,7 @@
           <button class="btn" id="act-join">JOIN</button>
         </div>
         <div class="msg" id="act-status"></div>
-        <button class="btn ghost" id="act-cancel">← Back to the street</button>
+        <button class="btn ghost" id="act-cancel">← Back to the hall</button>
       </div>
     </div>
   </div>
