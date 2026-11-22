@@ -4,6 +4,7 @@ import { charTextureKey, sizeSprite } from "../flow/characters";
 import { audio } from "../flow/audio";
 import { clockOut, toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
+import { keys } from "../flow/keys";
 import { TILE } from "../art/tiles";
 import { propTextureKey, type PropKind } from "../art/props";
 import {
@@ -109,7 +110,8 @@ export class CityScene extends Phaser.Scene {
 
     /* ---------- input ---------- */
     this.walker = new Walker(this, "top");
-    this.input.keyboard!.on("keydown-E", () => this.enter());
+    const offEnter = keys.onPress("action", () => this.enter());
+    this.events.once("shutdown", offEnter);
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       this.target = {
         x: Phaser.Math.Clamp(p.worldX, 8, WORLD_W - 8),

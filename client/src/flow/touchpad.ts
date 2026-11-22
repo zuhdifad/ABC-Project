@@ -30,6 +30,11 @@ export function bindTouchPad() {
     apply();
   };
 
+  // the keyboard is the primary controller: label the hub accordingly on
+  // desktop, where the pad is only a stand-in for mouse players
+  const hub = document.getElementById("dpad-hub");
+  if (hub && window.matchMedia("(pointer: fine)").matches) hub.textContent = "WASD";
+
   for (const dir of DIRS) {
     const el = pad.querySelector<HTMLButtonElement>(`[data-dir="${dir}"]`);
     if (!el) continue;

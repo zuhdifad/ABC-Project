@@ -4,6 +4,7 @@ import { THEMES, GOAL, BAR_X, BAR_W, type Lane, type GameTheme } from "../games/
 import { GAME_FONT } from "../flow/theme";
 import { audio } from "../flow/audio";
 import { charTextureKey, sizeSprite } from "../flow/characters";
+import { keys } from "../flow/keys";
 
 const W = 960;
 const H = 600;
@@ -95,9 +96,11 @@ export class RaceScene extends Phaser.Scene {
       }
     });
 
-    this.input.keyboard?.on("keydown", (e: KeyboardEvent) => {
-      if (!e.repeat) this.sendTap();
-    });
+    // any key or tap is a chug — the keyboard layer is window-wide, so this
+    // works even when the canvas isn't the focused element
+    const offKeys = keys.onAnyPress(() => this.sendTap());
+    const releaseKeys = keys.claim();   // mashing must not scroll the page
+    this.events.once("shutdown", () => { offKeys(); releaseKeys(); });
     this.input.on("pointerdown", () => this.sendTap());
   }
 

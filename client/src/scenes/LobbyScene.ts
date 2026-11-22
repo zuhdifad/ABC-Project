@@ -4,6 +4,7 @@ import { CHARACTERS, charById, charTextureKey, sizeSprite } from "../flow/charac
 import { audio } from "../flow/audio";
 import { toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
+import { keys } from "../flow/keys";
 
 const W = 960, H = 600;
 
@@ -50,7 +51,8 @@ export class LobbyScene extends Phaser.Scene {
     ).setOrigin(0.5, 1).setDepth(10);
 
     this.walker = new Walker(this);
-    this.input.keyboard!.on("keydown-E", () => this.enter());
+    const offEnter = keys.onPress("action", () => this.enter());
+    this.events.once("shutdown", offEnter);
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       this.target = { x: Phaser.Math.Clamp(p.worldX, 40, W - 40), y: Phaser.Math.Clamp(p.worldY, 430, 540) };
     });

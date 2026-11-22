@@ -5,6 +5,7 @@ import { CHARACTERS, charById, charTextureKey, sizeSprite } from "../flow/charac
 import { audio } from "../flow/audio";
 import { toast, setGoal, setSpeed } from "../flow/screens";
 import { Walker, WALK_LABEL } from "../flow/walk";
+import { keys } from "../flow/keys";
 import { openActivity } from "../menu";
 
 const W = 960, H = 600;
@@ -71,7 +72,8 @@ export class RoomScene extends Phaser.Scene {
     ).setOrigin(0.5, 1).setDepth(10);
 
     this.walker = new Walker(this);
-    this.input.keyboard!.on("keydown-E", () => this.interact());
+    const offEnter = keys.onPress("action", () => this.interact());
+    this.events.once("shutdown", offEnter);
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
       if (this.seated) return;
       // clicks on the coworker are their own action (challenge to a chug)

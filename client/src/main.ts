@@ -39,6 +39,15 @@ function boot() {
   initActivity(game);
   bindMuteButtons();
 
+  // Some hosts (IDE preview panels, iframes) only forward key events once
+  // something inside the frame has been clicked. The keyboard listens on the
+  // window, so this is just a nudge: make the canvas focusable and take focus
+  // on a press over the game area.
+  const canvas = game.canvas;
+  canvas.tabIndex = 0;
+  canvas.style.outline = "none";
+  canvas.addEventListener("pointerdown", () => canvas.focus({ preventScroll: true }));
+
   // dev-only handle, used by the screenshot harness to read the walk state
   if (import.meta.env.DEV) (window as any).__game = game;
 }

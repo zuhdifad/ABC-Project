@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { keys, type GameKey } from "./keys";
 
 /**
  * Shared on-foot controls for the walkable scenes (street, lobby, room).
@@ -14,6 +15,10 @@ import Phaser from "phaser";
  * - hold a direction key: steady walk
  * - tap direction keys repeatedly: brisk walk (the taps stack up and decay)
  * - hold a direction + 1 or / or Shift: run
+ *
+ * Key state comes from `flow/keys`, which listens on the window rather than on
+ * Phaser's canvas — so the keyboard keeps working when the game is embedded
+ * and never needs the canvas to be focused first.
  */
 export type WalkMode = "idle" | "walk" | "brisk" | "run";
 export type WalkPlane = "side" | "top";
@@ -33,11 +38,7 @@ export interface WalkState {
 const WALK_SPEED = 150;
 const RUN_SPEED = 330;
 
-/** keys the page must never steal: arrows scroll, space pages down */
-const CAPTURED = "W,A,S,D,UP,DOWN,LEFT,RIGHT,SHIFT,SPACE,ONE,SLASH";
-
 export class Walker {
-  private keys: Record<string, Phaser.Input.Keyboard.Key>;
   private boost = 0;
   private momentum = 0;
   /** direction the character is facing: +1 right, -1 left */
@@ -47,27 +48,32 @@ export class Walker {
   /** on-screen d-pad, -1..1 per axis */
   private padX = 0;
   private padY = 0;
+  private release: () => void;
+  private offTaps: Array<() => void> = [];
 
-  constructor(private scene: Phaser.Scene, private plane: WalkPlane = "side") {
-    this.keys = scene.input.keyboard!.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,ONE,SLASH,SHIFT") as any;
-    // without this, holding an arrow scrolls the page and the canvas stops
-    // listening for the key — which reads to the player as "left/right is dead"
-    scene.input.keyboard!.addCapture(CAPTURED);
+  constructor(scene: Phaser.Scene, private plane: WalkPlane = "side") {
+    // swallow arrow scrolling for as long as this scene is alive
+    this.release = keys.claim();
 
-    const tap = (e: KeyboardEvent) => {
-      if (e.repeat) return;               // held keys auto-repeat; only real taps count
+    const tap = () => {
       this.boost = Math.min(1, this.boost + 0.4);
       this.momentum = Math.min(0.55, this.momentum + 0.32);
     };
-    const taps = plane === "top"
-      ? ["UP", "W", "DOWN", "S", "LEFT", "A", "RIGHT", "D"]
-      : ["UP", "W"];
-    for (const key of taps) scene.input.keyboard!.on(`keydown-${key}`, tap);
+    const taps: GameKey[] = plane === "top"
+      ? ["up", "down", "left", "right"]
+      : ["up", "down"];
+    this.offTaps = taps.map(k => keys.onPress(k, tap));
+
     setActiveWalker(this);
-    scene.events.once("shutdown", () => {
-      for (const key of taps) scene.input.keyboard?.off(`keydown-${key}`, tap);
-      if (active === this) setActiveWalker(null);
-    });
+    scene.events.once("shutdown", () => this.dispose());
+    scene.events.once("destroy", () => this.dispose());
+  }
+
+  private dispose() {
+    this.release();
+    for (const off of this.offTaps) off();
+    this.offTaps = [];
+    if (active === this) setActiveWalker(null);
   }
 
   /** Steer from the on-screen d-pad (touch and mouse). */
@@ -89,18 +95,17 @@ export class Walker {
   }
 
   private readSide(dt: number): WalkState {
-    const k = this.keys;
     let vx = 0;
-    if (k.LEFT?.isDown || k.A?.isDown) { vx -= 1; this.facing = -1; }
-    if (k.RIGHT?.isDown || k.D?.isDown) { vx += 1; this.facing = 1; }
+    if (keys.isDown("left")) { vx -= 1; this.facing = -1; }
+    if (keys.isDown("right")) { vx += 1; this.facing = 1; }
     if (vx) this.dir = vx < 0 ? "left" : "right";
     // the d-pad: sides steer, up/down walk forward and back like W / S
     if (!vx && this.padX) { vx = this.padX; this.facing = vx > 0 ? 1 : -1; }
     else if (!vx && this.padY) vx = this.padY < 0 ? this.facing : -this.facing;
     if (!vx) {
       // W / ↑ always means "walk forward" in the direction the character faces
-      if (k.UP?.isDown || k.W?.isDown) vx = this.facing;
-      else if (k.DOWN?.isDown || k.S?.isDown) vx = -this.facing;
+      if (keys.isDown("up")) vx = this.facing;
+      else if (keys.isDown("down")) vx = -this.facing;
     }
 
     this.boost = Math.max(0, this.boost - dt * 0.35);
@@ -118,9 +123,8 @@ export class Walker {
     let mode: WalkMode = "idle";
     let speed = 0;
     if (moving) {
-      const forwardHeld = !!(k.UP?.isDown || k.W?.isDown);
-      const runKey = k.ONE?.isDown || k.SLASH?.isDown || k.SHIFT?.isDown;
-      if (runKey && forwardHeld) { mode = "run"; speed = RUN_SPEED; }
+      const forwardHeld = keys.isDown("up") || this.padY < 0;
+      if (keys.isDown("run") && forwardHeld) { mode = "run"; speed = RUN_SPEED; }
       else if (this.boost > 0.28) { mode = "brisk"; speed = WALK_SPEED * (1 + 0.55 * this.boost); }
       else { mode = "walk"; speed = WALK_SPEED * (1 + 0.3 * this.boost); }
     }
@@ -128,12 +132,11 @@ export class Walker {
   }
 
   private readTop(dt: number): WalkState {
-    const k = this.keys;
     let vx = 0, vy = 0;
-    if (k.LEFT?.isDown || k.A?.isDown) vx -= 1;
-    if (k.RIGHT?.isDown || k.D?.isDown) vx += 1;
-    if (k.UP?.isDown || k.W?.isDown) vy -= 1;
-    if (k.DOWN?.isDown || k.S?.isDown) vy += 1;
+    if (keys.isDown("left")) vx -= 1;
+    if (keys.isDown("right")) vx += 1;
+    if (keys.isDown("up")) vy -= 1;
+    if (keys.isDown("down")) vy += 1;
     // the on-screen pad steers through the same axis values as the keys
     vx = Math.max(-1, Math.min(1, vx + this.padX));
     vy = Math.max(-1, Math.min(1, vy + this.padY));
@@ -152,8 +155,7 @@ export class Walker {
     if (moving) {
       const len = Math.hypot(vx, vy) || 1;
       vx /= len; vy /= len;
-      const runKey = k.ONE?.isDown || k.SLASH?.isDown || k.SHIFT?.isDown;
-      if (runKey) { mode = "run"; speed = RUN_SPEED; }
+      if (keys.isDown("run")) { mode = "run"; speed = RUN_SPEED; }
       else if (this.boost > 0.28) { mode = "brisk"; speed = WALK_SPEED * (1 + 0.55 * this.boost); }
       else { mode = "walk"; speed = WALK_SPEED * (1 + 0.3 * this.boost); }
     }
