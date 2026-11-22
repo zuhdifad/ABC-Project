@@ -82,6 +82,38 @@ export const CHARACTERS: CharacterDef[] = [
     ...art("aaron")
   },
   {
+    id: "aditya",
+    name: "Aditya",
+    persona: "Disciplined",
+    scene: "office",
+    role: "Systems Engineer",
+    tagline: "The Quiet Professional",
+    bio: "Crisp shirt, spare charger, ticket closed before lunch. Aditya doesn't do heroics — he does sequence: diagnose, fix, document, done. The only person in the tower who reads the release notes.",
+    quote: "“Restart it. No — properly. I'll wait.”",
+    build: "athletic",
+    physique: "Athletic · crisp, clipped steps",
+    coffeeOrder: "Black coffee, same time daily",
+    perk: { label: "Systems Check", detail: "Desk work costs you the least" },
+    stats: { energy: 62, focus: 78, coffee: 44 },
+    ...art("aditya")
+  },
+  {
+    id: "akila",
+    name: "Akila",
+    persona: "Gracious",
+    scene: "street",
+    role: "Client Success Manager",
+    tagline: "The Warm Welcome",
+    bio: "Remembers every client's favourite chair and their kid's exam week. Akila fields the angry call, sends the apology basket, and somehow ends the year with a referral on every account.",
+    quote: "“Give me five minutes with them. Please.”",
+    build: "average",
+    physique: "Average · bright, easy gait",
+    coffeeOrder: "Teh tarik, less sweet",
+    perk: { label: "Open Door", detail: "Chats and check-ins lift your stamina most" },
+    stats: { energy: 88, focus: 72, coffee: 56 },
+    ...art("akila")
+  },
+  {
     id: "aldi",
     name: "Aldi",
     persona: "Sociable",
@@ -96,6 +128,38 @@ export const CHARACTERS: CharacterDef[] = [
     perk: { label: "Everybody's Friend", detail: "Chats restore more stamina" },
     stats: { energy: 86, focus: 62, coffee: 58 },
     ...art("aldi")
+  },
+  {
+    id: "anggie-aulia-akbar",
+    name: "Anggie Aulia Akbar",
+    persona: "Approachable",
+    scene: "street",
+    role: "IT Support Lead",
+    tagline: "The First Call",
+    bio: "The name on every “who do I ask?” thread. Anggie fixes laptops, chairs and arguments with the same patience, and keeps the whole tower's coffee order in his head.",
+    quote: "“Leave it with me — I'll sort it before lunch.”",
+    build: "solid",
+    physique: "Solid · relaxed, rolling walk",
+    coffeeOrder: "Kopi susu, two sugars, on the house",
+    perk: { label: "Fix It Ticket", detail: "Every favour owed comes back as stamina" },
+    stats: { energy: 66, focus: 68, coffee: 76 },
+    ...art("anggie-aulia-akbar")
+  },
+  {
+    id: "angie",
+    name: "Angie",
+    persona: "Understated",
+    scene: "cafe",
+    role: "Product Manager",
+    tagline: "The Quiet Decider",
+    bio: "Says almost nothing in the meeting, then solves it in the lift. Angie writes the one-line spec that kills three weeks of arguing and wears the same blazer so nobody can date the photos.",
+    quote: "“Let's cut it to one screen. Then it ships.”",
+    build: "lean",
+    physique: "Lean · soft, unhurried walk",
+    coffeeOrder: "Oat latte, no sugar",
+    perk: { label: "Quiet Hours", detail: "Long focus blocks cost you almost nothing" },
+    stats: { energy: 80, focus: 78, coffee: 36 },
+    ...art("angie")
   },
   {
     id: "ayu",
@@ -114,6 +178,22 @@ export const CHARACTERS: CharacterDef[] = [
     ...art("ayu")
   },
   {
+    id: "chang-woo",
+    name: "Chang Woo",
+    persona: "Dependable",
+    scene: "site",
+    role: "Procurement Manager",
+    tagline: "The Long Haul",
+    bio: "Twenty vendors, one clipboard, zero drama. Chang Woo knows which contractor will actually turn up on a rainy Thursday, and he has walked the whole building's supply route more often than the lift.",
+    quote: "“It'll arrive Tuesday. Not 'maybe' Tuesday.”",
+    build: "solid",
+    physique: "Solid · planted, heavy steps",
+    coffeeOrder: "Kopi C peng, large",
+    perk: { label: "Long Haul", detail: "Keeps clocking in long after others flag" },
+    stats: { energy: 66, focus: 76, coffee: 86 },
+    ...art("chang-woo")
+  },
+  {
     id: "clara",
     name: "Clara",
     persona: "Spirited",
@@ -128,6 +208,22 @@ export const CHARACTERS: CharacterDef[] = [
     perk: { label: "Fast Talker", detail: "Brisk-walk momentum builds quicker" },
     stats: { energy: 90, focus: 66, coffee: 78 },
     ...art("clara")
+  },
+  {
+    id: "eileen",
+    name: "Eileen",
+    persona: "Perceptive",
+    scene: "office",
+    role: "Research Lead",
+    tagline: "The Second Opinion",
+    bio: "Reads the footnotes, then reads the room. Eileen has a polite way of asking the question everyone was avoiding, and the glasses come off right before she does it.",
+    quote: "“Before we build it — can we check the assumption?”",
+    build: "slim",
+    physique: "Slim · careful, quiet steps",
+    coffeeOrder: "Pour-over, black",
+    perk: { label: "Peer Review", detail: "Every ticket carries a research bonus" },
+    stats: { energy: 62, focus: 96, coffee: 68 },
+    ...art("eileen")
   },
   {
     id: "elvin",
@@ -242,6 +338,38 @@ export const CHARACTERS: CharacterDef[] = [
     ...art("lisa")
   },
   {
+    id: "long",
+    name: "Long",
+    persona: "Earnest",
+    scene: "street",
+    role: "Management Trainee",
+    tagline: "The Rising Starter",
+    bio: "First in, last to the pantry, notes app open. Long says yes to everything in his first year and has already memorised which printer jams on level nine.",
+    quote: "“Yes — I'll take the 8am slot. All week.”",
+    build: "athletic",
+    physique: "Athletic · eager, springy step",
+    coffeeOrder: "Three-in-one sachet, secretly",
+    perk: { label: "First In", detail: "Starts every shift with extra stamina" },
+    stats: { energy: 86, focus: 64, coffee: 46 },
+    ...art("long")
+  },
+  {
+    id: "raymond",
+    name: "Raymond",
+    persona: "Discreet",
+    scene: "office",
+    role: "Strategy Manager",
+    tagline: "The Steady Strategist",
+    bio: "Reads the annual report for fun and can tell you which department will overspend by March. Raymond says little in the meeting, then hands over the one slide that settles it.",
+    quote: "“The plan is fine. The timeline isn't.”",
+    build: "lean",
+    physique: "Lean · quiet, even stride",
+    coffeeOrder: "Green tea, nothing after noon",
+    perk: { label: "Even Keel", detail: "Never spikes, never crashes" },
+    stats: { energy: 76, focus: 80, coffee: 62 },
+    ...art("raymond")
+  },
+  {
     id: "salim",
     name: "Salim",
     persona: "Resourceful",
@@ -256,6 +384,22 @@ export const CHARACTERS: CharacterDef[] = [
     perk: { label: "Load Bearing", detail: "Keeps working on low stamina" },
     stats: { energy: 68, focus: 86, coffee: 56 },
     ...art("salim")
+  },
+  {
+    id: "yoon",
+    name: "Yoon",
+    persona: "Decisive",
+    scene: "office",
+    role: "Legal Counsel",
+    tagline: "The Quiet Authority",
+    bio: "One meeting, one answer, no second draft. Yoon keeps the company out of court with a red pen and a very calm voice, then leaves exactly on time to collect her dry cleaning.",
+    quote: "“Then we don't sign it. Next item.”",
+    build: "tall",
+    physique: "Tall · clean, decisive stride",
+    coffeeOrder: "Kopi O kosong, proper cup",
+    perk: { label: "Fine Print", detail: "Contract work pays the highest premium" },
+    stats: { energy: 74, focus: 90, coffee: 34 },
+    ...art("yoon")
   },
   {
     id: "zuhdi",
@@ -325,14 +469,21 @@ export function charMods(id?: string): CharMods {
   const { energy, focus, coffee } = c.stats;
   const perk = c.perk.label;
   return {
-    startEnergy: Math.round(46 + energy * 0.44),
-    focusMult: +(0.75 + focus / 200).toFixed(3),
-    drainMult: +((0.65 + coffee / 100) * (perk === "Unshakeable" ? 0.8 : 1)).toFixed(3),
+    startEnergy: Math.round(46 + energy * 0.44) + (perk === "First In" ? 8 : 0),
+    focusMult: +((0.75 + focus / 200) * (perk === "Peer Review" ? 1.12 : 1)).toFixed(3),
+    drainMult: +((0.65 + coffee / 100)
+      * (perk === "Unshakeable" ? 0.8 : 1)
+      * (perk === "Quiet Hours" ? 0.88 : 1)
+      * (perk === "Even Keel" ? 0.9 : 1)).toFixed(3),
     coffeeBoost: Math.round((10 + coffee * 0.16) * (perk === "Pantry Diplomat" ? 1.25 : 1)),
     paceMult: PACE[c.build],
-    chatBoost: perk === "Everybody's Friend" ? 6 : 3,
-    workCost: perk === "Everything On Time" ? 6 : perk === "Load Bearing" ? 7 : 8,
-    workBonus: perk === "Balanced Books" ? 6 : 0,
+    chatBoost: perk === "Everybody's Friend" ? 6
+      : perk === "Open Door" ? 8
+      : perk === "Fix It Ticket" ? 10 : 3,
+    workCost: perk === "Everything On Time" ? 6
+      : perk === "Load Bearing" ? 7
+      : perk === "Systems Check" ? 5 : 8,
+    workBonus: perk === "Balanced Books" ? 6 : perk === "Fine Print" ? 9 : 0,
     winBonus: perk === "Institutional Memory" ? 15 : 0,
     briskGain: perk === "Fast Talker" ? 1.35 : 1,
     runDrain: perk === "Sprint Finish" ? 0.6 : 1,
@@ -340,9 +491,10 @@ export function charMods(id?: string): CharMods {
   };
 }
 
-/** stamina floor for desk work — Salim keeps going when others stop */
+/** stamina floor for desk work — Salim and Chang Woo keep going when others stop */
 export function workFloor(id?: string): number {
-  return charById(id).perk.label === "Load Bearing" ? 6 : 12;
+  const perk = charById(id).perk.label;
+  return perk === "Load Bearing" || perk === "Long Haul" ? 6 : 12;
 }
 
 /**
